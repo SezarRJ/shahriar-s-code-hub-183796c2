@@ -1,0 +1,349 @@
+name: SHAHID CI
+
+on:
+  push:
+    branches: [main, develop, staging]
+  pull_request:
+    branches: [main, develop, staging]
+
+env:
+  NODE_VERSION: 20
+  PYTHON_VERSION: 3.11
+  PNPM_VERSION: 9
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      api-gateway: ${{ steps.filter.outputs.api-gateway }}
+      storage: ${{ steps.filter.outputs.storage }}
+      report: ${{ steps.filter.outputs.report }}
+      notification: ${{ steps.filter.outputs.notification }}
+      ai: ${{ steps.filter.outputs.ai }}
+      web: ${{ steps.filter.outputs.web }}
+      mobile: ${{ steps.filter.outputs.mobile }}
+      database: ${{ steps.filter.outputs.database }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api-gateway:
+              - 'services/api-gateway/**'
+              - '.github/workflows/ci.yml'
+            storage:
+              - 'services/storage-service/**'
+              - '.github/workflows/ci.yml'
+            report:
+              - 'services/report-service/**'
+              - '.github/workflows/ci.yml'
+            notification:
+              - 'services/notification-service/**'
+              - '.github/workflows/ci.yml'
+            ai:
+              - 'services/ai-service/**'
+              - '.github/workflows/ci.yml'
+            web:
+              - 'apps/web/**'
+              - '.github/workflows/ci.yml'
+            mobile:
+              - 'apps/mobile/**'
+              - '.github/workflows/ci.yml'
+            database:
+              - 'database/**'
+              - '.github/workflows/ci.yml'
+
+  # ───────────────────────────────────────────────
+  # API Gateway
+  # ───────────────────────────────────────────────
+  api-gateway:
+    needs: changes
+    if: ${{ needs.changes.outputs.api-gateway == 'true' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/api-gateway
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: services/api-gateway/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm test -- --coverage --watchAll=false
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: services/api-gateway/coverage/lcov.info
+          flags: api-gateway
+
+  # ───────────────────────────────────────────────
+  # Storage Service
+  # ───────────────────────────────────────────────
+  storage-service:
+    needs: changes
+    if: ${{ needs.changes.outputs.storage == 'true' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/storage-service
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: services/storage-service/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+  # ───────────────────────────────────────────────
+  # Report Service
+  # ───────────────────────────────────────────────
+  report-service:
+    needs: changes
+    if: ${{ needs.changes.outputs.report == 'true' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/report-service
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: services/report-service/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+  # ───────────────────────────────────────────────
+  # Notification Service
+  # ───────────────────────────────────────────────
+  notification-service:
+    needs: changes
+    if: ${{ needs.changes.outputs.notification == 'true' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/notification-service
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: services/notification-service/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+  # ───────────────────────────────────────────────
+  # AI Service (Python)
+  # ───────────────────────────────────────────────
+  ai-service:
+    needs: changes
+    if: ${{ needs.changes.outputs.ai == 'true' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/ai-service
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Lint with Ruff
+        run: |
+          pip install ruff
+          ruff check .
+
+      - name: Type check with mypy
+        run: |
+          pip install mypy
+          mypy main.py
+
+  # ───────────────────────────────────────────────
+  # Web Dashboard (React + TypeScript)
+  # ───────────────────────────────────────────────
+  web-dashboard:
+    needs: changes
+    if: ${{ needs.changes.outputs.web == 'true' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm run test -- --run
+        continue-on-error: true
+
+  # ───────────────────────────────────────────────
+  # Mobile App (Flutter)
+  # ───────────────────────────────────────────────
+  mobile-app:
+    needs: changes
+    if: ${{ needs.changes.outputs.mobile == 'true' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.0'
+          channel: 'stable'
+
+      - name: Flutter doctor
+        run: flutter doctor -v
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Build APK
+        run: flutter build apk --debug
+
+      - name: Build Web
+        run: flutter build web
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: shahid-mobile-apk
+          path: apps/mobile/build/app/outputs/flutter-apk/app-debug.apk
+
+  # ───────────────────────────────────────────────
+  # Database Schema Validation
+  # ───────────────────────────────────────────────
+  database:
+    needs: changes
+    if: ${{ needs.changes.outputs.database == 'true' }}
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PostGIS
+        run: |
+          docker exec ${{ job.services.postgres.id }} psql -U postgres -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+          docker exec ${{ job.services.postgres.id }} psql -U postgres -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+          docker exec ${{ job.services.postgres.id }} psql -U postgres -c "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";"
+
+      - name: Run Migrations
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f database/supabase/migrations/001_initial_schema.sql
+
+      - name: Validate Schema
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -c "\dt"
+          PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -c "\d+ photos"
+
+  # ───────────────────────────────────────────────
+  # Docker Compose Integration Test
+  # ───────────────────────────────────────────────
+  integration:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and start services
+        run: |
+          docker-compose up -d --build
+          sleep 30
+
+      - name: Health checks
+        run: |
+          curl -f http://localhost:3001/health || exit 1
+          curl -f http://localhost:5001/health || exit 1
+          curl -f http://localhost:3002/health || exit 1
+          curl -f http://localhost:3003/health || exit 1
+          curl -f http://localhost:3004/health || exit 1
+
+      - name: Logs on failure
+        if: failure()
+        run: docker-compose logs
+
+      - name: Shutdown
+        run: docker-compose down

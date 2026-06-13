@@ -1,0 +1,73 @@
+# Dependencies
+**/node_modules/
+**/.venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.mypy_cache/
+
+# Build outputs
+**/dist/
+**/build/
+**/out/
+**/.next/
+**/.nuxt/
+
+# Flutter
+**/flutter/.dart_tool/
+**/flutter/.flutter-plugins
+**/flutter/.flutter-plugins-dependencies
+**/flutter/.packages
+**/flutter/build/
+**/flutter/ios/Pods/
+**/flutter/ios/.symlinks/
+**/flutter/android/.gradle/
+**/flutter/android/app/debug/
+**/flutter/android/app/profile/
+**/flutter/android/app/release/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.production
+.env.staging
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Docker
+.dockerignore
+
+# Database
+*.sqlite
+*.db
+
+# Supabase
+supabase/.branches/
+supabase/.temp/
+
+# Misc
+*.pem
+*.key
+*.cert
+
+# Coverage
+coverage/
+*.lcov
+
+# Vite
+**/.vite/

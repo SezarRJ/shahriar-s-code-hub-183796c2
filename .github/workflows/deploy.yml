@@ -1,0 +1,65 @@
+name: SHAHID Deploy
+
+on:
+  push:
+    branches: [main, staging]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-staging:
+    if: github.ref == 'refs/heads/staging' || github.event.inputs.environment == 'staging'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Staging (AWS / Supabase)
+        run: |
+          echo "Deploying to staging..."
+          # Placeholder: AWS ECS deploy, Supabase DB push, S3 sync for web
+
+      - name: Smoke test
+        run: |
+          sleep 30
+          curl -f https://staging.shahid-platform.dev/health || exit 1
+
+  deploy-production:
+    if: github.ref == 'refs/heads/main' || github.event.inputs.environment == 'production'
+    runs-on: ubuntu-latest
+    environment: production
+    needs: deploy-staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Production (AWS / Supabase)
+        run: |
+          echo "Deploying to production..."
+          # Placeholder: AWS ECS deploy, Supabase DB push, S3 sync for web, App Store / Play Store deploy for mobile
+
+      - name: Smoke test
+        run: |
+          sleep 60
+          curl -f https://api.shahid-platform.com/health || exit 1
+
+      - name: Notify Slack
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "text": "SHAHID production deployment complete: ${{ github.sha }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

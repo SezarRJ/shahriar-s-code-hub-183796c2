@@ -1,0 +1,203 @@
+version: "3.9"
+
+services:
+  # --- Supabase Local Stack ---
+  supabase-db:
+    image: supabase/postgres:15.1.0.117
+    container_name: shahid-db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      - ./database/supabase/migrations:/docker-entrypoint-initdb.d
+      - supabase-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - shahid-network
+
+  supabase-auth:
+    image: supabase/gotrue:v2.158.1
+    container_name: shahid-auth
+    ports:
+      - "9999:9999"
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://postgres:postgres@supabase-db:5432/postgres?sslmode=disable
+      GOTRUE_JWT_SECRET: your-super-secret-jwt-key-for-local-dev-only
+      GOTRUE_JWT_EXPIRY: 3600
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_SITE_URL: http://localhost:3000
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
+      GOTRUE_DISABLE_SIGNUP: "false"
+      GOTRUE_MAILER_URLPATHS_CONFIRMATION: /auth/confirm
+      GOTRUE_MAILER_URLPATHS_INVITE: /auth/invite
+      GOTRUE_MAILER_URLPATHS_RECOVERY: /auth/recovery
+      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: /auth/email-change
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    networks:
+      - shahid-network
+
+  # --- Redis Cache ---
+  redis:
+    image: redis:7-alpine
+    container_name: shahid-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - shahid-network
+
+  # --- MinIO (S3-compatible local storage) ---
+  minio:
+    image: minio/minio:RELEASE.2024-06-13T22-53-45Z
+    container_name: shahid-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    networks:
+      - shahid-network
+
+  # --- Node.js API Gateway ---
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: shahid-api-gateway
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      SUPABASE_URL: http://supabase-auth:9999
+      SUPABASE_SERVICE_KEY: your-super-secret-jwt-key-for-local-dev-only
+      DATABASE_URL: postgres://postgres:postgres@supabase-db:5432/postgres
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin123
+      S3_BUCKET: shahid-photos
+      S3_REGION: us-east-1
+    volumes:
+      - ./services/api-gateway:/app
+      - /app/node_modules
+    depends_on:
+      - supabase-db
+      - redis
+      - minio
+    networks:
+      - shahid-network
+
+  # --- Python AI Service ---
+  ai-service:
+    build:
+      context: ./services/ai-service
+      dockerfile: Dockerfile
+    container_name: shahid-ai-service
+    ports:
+      - "5001:5001"
+    environment:
+      PYTHON_ENV: development
+      PORT: 5001
+      DATABASE_URL: postgres://postgres:postgres@supabase-db:5432/postgres
+      REDIS_URL: redis://redis:6379
+    volumes:
+      - ./services/ai-service:/app
+    depends_on:
+      - supabase-db
+      - redis
+    networks:
+      - shahid-network
+
+  # --- Report Service ---
+  report-service:
+    build:
+      context: ./services/report-service
+      dockerfile: Dockerfile
+    container_name: shahid-report-service
+    ports:
+      - "3002:3002"
+    environment:
+      NODE_ENV: development
+      PORT: 3002
+      DATABASE_URL: postgres://postgres:postgres@supabase-db:5432/postgres
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin123
+      S3_BUCKET: shahid-reports
+      S3_REGION: us-east-1
+    volumes:
+      - ./services/report-service:/app
+      - /app/node_modules
+    depends_on:
+      - supabase-db
+      - redis
+      - minio
+    networks:
+      - shahid-network
+
+  # --- Notification Service ---
+  notification-service:
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile
+    container_name: shahid-notification-service
+    ports:
+      - "3003:3003"
+    environment:
+      NODE_ENV: development
+      PORT: 3003
+      DATABASE_URL: postgres://postgres:postgres@supabase-db:5432/postgres
+      REDIS_URL: redis://redis:6379
+      FCM_SERVER_KEY: "" # Local dev uses mock
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      SMTP_USER: ""
+      SMTP_PASS: ""
+    volumes:
+      - ./services/notification-service:/app
+      - /app/node_modules
+    depends_on:
+      - supabase-db
+      - redis
+    networks:
+      - shahid-network
+
+  # --- MailHog (email capture for local dev) ---
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: shahid-mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - shahid-network
+
+volumes:
+  supabase-data:
+  redis-data:
+  minio-data:
+
+networks:
+  shahid-network:
+    driver: bridge

@@ -1,0 +1,45 @@
+PROPRIETARY & CONFIDENTIAL LICENSE
+
+SHAHID — شاهد
+Construction Site Documentation Platform
+
+Copyright (c) 2026 SHAHID Platform. All rights reserved.
+
+This software and associated documentation files (the "Software") are the
+proprietary and confidential information of SHAHID Platform and its licensors.
+
+PERMISSIONS:
+- Use of this Software is restricted to authorized employees, contractors, and
+  licensees of the licensed organization with active SHAHID Platform agreements.
+
+RESTRICTIONS:
+- You may NOT copy, modify, merge, publish, distribute, sublicense, or sell
+  copies of the Software without express written permission.
+- You may NOT reverse engineer, decompile, or disassemble the Software.
+- You may NOT use the Software for any purpose outside the scope of the licensed
+  agreement.
+- You may NOT remove or alter any proprietary notices or labels on the Software.
+- You may NOT disclose, share, or publish screenshots, API documentation, or
+  architecture details without prior written approval.
+
+DATA & PRIVACY:
+- All construction site data, photographs, GPS coordinates, and metadata
+  captured through this Software are subject to the Data Processing Agreement
+  (DPA) and GDPR / local privacy law compliance requirements.
+- Immutable photo records (WORM) and SHA-256 hashes are designed for audit
+  integrity and may not be deleted or modified by any user role, including
+  Super Admin.
+
+INFRINGEMENT:
+- Unauthorized use, reproduction, or distribution of this Software constitutes
+  infringement of intellectual property rights and may result in civil and
+  criminal penalties under applicable law.
+
+For licensing inquiries, contact: legal@shahid-platform.dev
+
+This license is governed by the laws of the jurisdiction in which the licensed
+organization is headquartered, without regard to conflict of law provisions.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.

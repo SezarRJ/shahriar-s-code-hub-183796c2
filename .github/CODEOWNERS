@@ -1,0 +1,37 @@
+# SHAHID Repository Code Owners
+# Automatically requests review from the relevant team on PRs
+
+# ─────────────────────────────────────────────────────────────
+# Global fallback — Platform Architects
+# ─────────────────────────────────────────────────────────────
+*                         @shahid-platform/architects
+
+# ─────────────────────────────────────────────────────────────
+# Backend / API
+# ─────────────────────────────────────────────────────────────
+/services/api-gateway/    @shahid-platform/backend-leads
+/services/storage-service/ @shahid-platform/backend-leads
+/services/report-service/ @shahid-platform/backend-leads
+/services/notification-service/ @shahid-platform/backend-leads
+/services/ai-service/     @shahid-platform/ai-team
+
+# ─────────────────────────────────────────────────────────────
+# Frontend
+# ─────────────────────────────────────────────────────────────
+/apps/web/                @shahid-platform/frontend-leads
+/apps/mobile/             @shahid-platform/mobile-leads
+
+# ─────────────────────────────────────────────────────────────
+# Database / DevOps / Infrastructure
+# ─────────────────────────────────────────────────────────────
+/database/                @shahid-platform/devops-leads
+/docker-compose.yml       @shahid-platform/devops-leads
+/.github/workflows/       @shahid-platform/devops-leads
+/terraform/               @shahid-platform/devops-leads
+
+# ─────────────────────────────────────────────────────────────
+# Documentation / Product
+# ─────────────────────────────────────────────────────────────
+/docs/                    @shahid-platform/product-managers
+*.md                      @shahid-platform/product-managers
+README.md                 @shahid-platform/product-managers
