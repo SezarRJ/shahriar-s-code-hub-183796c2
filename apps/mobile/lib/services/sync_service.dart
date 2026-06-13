@@ -62,13 +62,15 @@ class SyncService {
       // For now, placeholder header
       request.headers['Authorization'] = 'Bearer ${await _getToken()}';
 
-      // Metadata JSON
+      // Metadata JSON — includes immutable hash and NTP sync flag for server verification
       final metadata = jsonEncode({
         'capture_point_id': photo.capturePointId,
         'captured_at': photo.capturedAt,
         'gps_lat': photo.gpsLat,
         'gps_lng': photo.gpsLng,
         'gps_accuracy': photo.gpsAccuracy,
+        'hash_sha256': photo.hashSha256,
+        'is_ntp_synced': photo.isNtpSynced,
         'device_id': photo.deviceId,
         'device_model': photo.deviceModel,
         'notes': photo.notes,

@@ -25,9 +25,9 @@ class CaptureService {
     required String fileName,
     String? notes,
   }) async {
-    // 1. Get NTP-synced timestamp
+    // 1. Get NTP-synced timestamp (null if NTP failed)
     final ntpTime = await _getNtpTime();
-    final capturedAt = ntpTime.toUtc().toIso8601String();
+    final capturedAt = (ntpTime ?? DateTime.now().toUtc()).toIso8601String();
 
     // 2. Get GPS coordinates
     final position = await _getPosition();
@@ -54,6 +54,7 @@ class CaptureService {
       gpsLng: gpsLng,
       gpsAccuracy: gpsAccuracy,
       hashSha256: hash,
+      isNtpSynced: ntpTime != null, // false if NTP failed and we fell back
       deviceId: deviceId,
       deviceModel: deviceModel,
       notes: notes,
@@ -67,18 +68,19 @@ class CaptureService {
     await _logAudit('capture', 'photo', capture.localId!, {
       'capture_point_id': capturePointId,
       'hash': hash,
+      'ntp_synced': capture.isNtpSynced,
     });
 
     return capture;
   }
 
-  Future<DateTime> _getNtpTime() async {
+  Future<DateTime?> _getNtpTime() async {
     try {
       final ntpOffset = await NTP.getNtpOffset(localTime: DateTime.now().toUtc());
       return DateTime.now().toUtc().add(Duration(milliseconds: ntpOffset));
     } catch (e) {
-      // Fallback to local time with warning flag (should be logged)
-      return DateTime.now().toUtc();
+      // NTP failed — caller must set isNtpSynced = false
+      return null;
     }
   }
 

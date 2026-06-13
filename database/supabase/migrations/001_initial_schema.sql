@@ -128,6 +128,7 @@ CREATE TABLE photos (
     gps_lng DECIMAL(11, 8) NOT NULL, -- Immutable
     gps_accuracy DECIMAL(6, 2), -- meters
     hash_sha256 TEXT NOT NULL, -- Immutable cryptographic hash
+    is_ntp_synced BOOLEAN NOT NULL DEFAULT true, -- false if device fell back to local clock
     device_id TEXT, -- Capturing device identifier
     device_model TEXT,
     local_path TEXT, -- Reference for local queue tracking

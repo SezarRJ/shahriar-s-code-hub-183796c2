@@ -317,6 +317,85 @@ jobs:
           PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -c "\d+ photos"
 
   # ───────────────────────────────────────────────
+  # k6 Load Test — AC-08 (50 Concurrent FOs)
+  # ───────────────────────────────────────────────
+  load-test:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
+    needs: [api-gateway, database]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Start services
+        run: |
+          docker-compose up -d --build
+          sleep 30
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Seed test data
+        run: |
+          # Create a test project and capture point for the load test
+          curl -X POST http://localhost:3001/api/v1/auth/signup \
+            -H "Content-Type: application/json" \
+            -d '{"email":"fo@test.com","password":"Password123!","name":"Load Test FO","role":"field_operator"}' || true
+          curl -X POST http://localhost:3001/api/v1/auth/signup \
+            -H "Content-Type: application/json" \
+            -d '{"email":"pm@test.com","password":"Password123!","name":"Load Test PM","role":"project_manager"}' || true
+          curl -X POST http://localhost:3001/api/v1/auth/signup \
+            -H "Content-Type: application/json" \
+            -d '{"email":"sa@test.com","password":"Password123!","name":"Load Test SA","role":"super_admin"}' || true
+
+      - name: Run k6 health check
+        run: k6 run --vus 1 --iterations 1 tests/load/health-check.js
+
+      - name: Run k6 AC-08 load test (50 concurrent FOs)
+        run: |
+          k6 run \
+            --vus 50 \
+            --duration 3m \
+            -e API_BASE=http://localhost:3001/api/v1 \
+            -e FO_EMAIL=fo@test.com \
+            -e FO_PASSWORD=Password123! \
+            tests/load/AC-08-concurrent-fo-upload.js
+
+      - name: Run k6 AC-06 RBAC test
+        run: |
+          k6 run \
+            --vus 1 \
+            --iterations 1 \
+            -e API_BASE=http://localhost:3001/api/v1 \
+            -e SA_EMAIL=sa@test.com \
+            -e SA_PASSWORD=Password123! \
+            -e TA_EMAIL=ta@test.com \
+            -e TA_PASSWORD=Password123! \
+            -e PM_EMAIL=pm@test.com \
+            -e PM_PASSWORD=Password123! \
+            -e SS_EMAIL=ss@test.com \
+            -e SS_PASSWORD=Password123! \
+            -e FO_EMAIL=fo@test.com \
+            -e FO_PASSWORD=Password123! \
+            -e RO_EMAIL=ro@test.com \
+            -e RO_PASSWORD=Password123! \
+            tests/load/AC-06-rbac-immutability.js
+
+      - name: Logs on failure
+        if: failure()
+        run: docker-compose logs
+
+      - name: Shutdown
+        run: docker-compose down
+
+  # ───────────────────────────────────────────────
   # Docker Compose Integration Test
   # ───────────────────────────────────────────────
   integration:

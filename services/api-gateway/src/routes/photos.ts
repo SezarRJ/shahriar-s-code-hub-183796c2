@@ -17,6 +17,8 @@ const photoMetadataSchema = z.object({
   device_id: z.string().optional(),
   device_model: z.string().optional(),
   notes: z.string().optional(), // Mutable notes attached to capture
+  hash_sha256: z.string().length(64), // Client-provided SHA-256; server verifies against recomputed hash
+  is_ntp_synced: z.boolean().default(true), // false if device fell back to local clock
 });
 
 /**
@@ -34,18 +36,34 @@ router.post('/', upload.single('photo'), async (req: Request, res: Response) => 
     const context = (req as any).tenantContext;
     const parsed = photoMetadataSchema.parse(JSON.parse(req.body.metadata || '{}'));
 
-    // Compute SHA-256 hash of the original file buffer
-    const hash = crypto.createHash('sha256').update(req.file.buffer).digest('hex');
+    // Server-side hash verification: client MUST provide hash, server recomputes and validates
+    const clientHash = parsed.hash_sha256 || '';
+    const serverHash = crypto.createHash('sha256').update(req.file.buffer).digest('hex');
+
+    if (!clientHash || clientHash !== serverHash) {
+      logger.warn({
+        message: 'Photo hash verification failed',
+        clientHash: clientHash,
+        serverHash: serverHash,
+        correlationId: req.correlationId,
+        userId: context.user_id,
+      });
+      res.status(400).json({
+        error: 'Hash verification failed. The provided SHA-256 does not match the server-computed hash. The photo may have been tampered with or corrupted during transfer.',
+        code: 'HASH_MISMATCH',
+      });
+      return;
+    }
 
     // In production: upload to S3/MinIO here, then get file_url
     // For local dev, we store a reference; actual S3 implementation in storage-service
-    const file_url = `s3://${process.env.S3_BUCKET || 'shahid-photos'}/${context.tenant_id}/${parsed.capture_point_id}/${Date.now()}_${hash.slice(0, 16)}.jpg`;
+    const file_url = `s3://${process.env.S3_BUCKET || 'shahid-photos'}/${context.tenant_id}/${parsed.capture_point_id}/${Date.now()}_${serverHash.slice(0, 16)}.jpg`;
 
     const client = await getClientWithContext(context);
     const result = await client.query(
       `INSERT INTO photos (capture_point_id, user_id, file_url, file_size_bytes, captured_at,
-        gps_lat, gps_lng, gps_accuracy, hash_sha256, device_id, device_model, synced)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, true)
+        gps_lat, gps_lng, gps_accuracy, hash_sha256, device_id, device_model, is_ntp_synced, synced)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true)
        RETURNING *`,
       [
         parsed.capture_point_id,
@@ -56,9 +74,10 @@ router.post('/', upload.single('photo'), async (req: Request, res: Response) => 
         parsed.gps_lat,
         parsed.gps_lng,
         parsed.gps_accuracy || null,
-        hash,
+        serverHash,
         parsed.device_id || null,
         parsed.device_model || null,
+        parsed.is_ntp_synced,
       ]
     );
     client.release();

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <title>Weekly Report — SHAHID</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', 'Arial', sans-serif;
+      direction: ltr;
+      text-align: left;
+      color: #1E3A5F;
+      background: #ffffff;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      padding: 20mm;
+      margin: 0 auto;
+      background: #ffffff;
+      page-break-after: always;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 3px solid #1E3A5F;
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+
+    .header-left {
+      text-align: left;
+    }
+
+    .header-left h1 {
+      font-size: 28px;
+      font-weight: 800;
+      color: #1E3A5F;
+      letter-spacing: -0.5px;
+    }
+
+    .header-left .subtitle {
+      font-size: 12px;
+      color: #666;
+      margin-top: 4px;
+    }
+
+    .header-right {
+      text-align: right;
+    }
+
+    .header-right .logo {
+      font-size: 32px;
+      font-weight: 800;
+      color: #1E3A5F;
+    }
+
+    .header-right .tagline {
+      font-size: 11px;
+      color: #888;
+    }
+
+    .meta-box {
+      background: #f5f7fa;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+    }
+
+    .meta-item label {
+      font-size: 11px;
+      color: #888;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .meta-item value {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1E3A5F;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .kpi-card {
+      background: #1E3A5F;
+      color: #fff;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .kpi-card .kpi-value {
+      font-size: 28px;
+      font-weight: 800;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .kpi-card .kpi-label {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+
+    .kpi-card.warning { background: #C8963E; }
+    .kpi-card.danger { background: #c0392b; }
+    .kpi-card.success { background: #27ae60; }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1E3A5F;
+      border-left: 4px solid #C8963E;
+      padding-left: 12px;
+      margin-bottom: 16px;
+      margin-top: 32px;
+    }
+
+    table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+    th { background: #f5f7fa; font-weight: 700; font-size: 12px; color: #666; text-transform: uppercase; }
+    td { font-size: 13px; }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .status-on-time { background: #d4edda; color: #155724; }
+    .status-delayed { background: #f8d7da; color: #721c24; }
+    .status-critical { background: #f5c6cb; color: #721c24; border: 1px solid #f5c6cb; }
+    .status-overdue { background: #fff3cd; color: #856404; }
+
+    .photo-thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; }
+
+    .footer {
+      margin-top: 40px;
+      padding-top: 16px;
+      border-top: 1px solid #e0e0e0;
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #888;
+    }
+
+    .evidence-box {
+      background: #f0f4f8;
+      border: 1px solid #d0dae6;
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 11px;
+      font-family: 'Courier New', monospace;
+      direction: ltr;
+      text-align: left;
+      margin-top: 8px;
+    }
+
+    .evidence-box .label { font-weight: 700; color: #1E3A5F; display: inline-block; width: 120px; }
+    .page-break { page-break-before: always; }
+
+    .integrity-banner {
+      background: #e8f4f8;
+      border: 1px solid #b8d8e8;
+      border-radius: 6px;
+      padding: 12px 16px;
+      margin-bottom: 24px;
+      font-size: 12px;
+      color: #1E3A5F;
+    }
+
+    .integrity-banner strong { font-weight: 700; }
+
+    @media print { .page { margin: 0; page-break-after: always; } }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="header">
+      <div class="header-left">
+        <h1>Weekly Report</h1>
+        <div class="subtitle">Report Period: {{period_start}} — {{period_end}}</div>
+      </div>
+      <div class="header-right">
+        <div class="logo">SHAHID</div>
+        <div class="tagline">The Project Manager's Digital Eye</div>
+      </div>
+    </div>
+
+    <div class="integrity-banner">
+      <strong>🔒 Data Integrity:</strong> All photos and data in this report are protected by SHA-256 hashing and cannot be modified after capture.
+      Verification hash: <code>{{report_hash}}</code>
+    </div>
+
+    <div class="meta-box">
+      <div class="meta-item"><label>Project Name</label><value>{{project_name}}</value></div>
+      <div class="meta-item"><label>Address</label><value>{{project_address}}</value></div>
+      <div class="meta-item"><label>Generated</label><value>{{generated_at}}</value></div>
+      <div class="meta-item"><label>User</label><value>{{generated_by}}</value></div>
+      <div class="meta-item"><label>Language</label><value>English</value></div>
+      <div class="meta-item"><label>Version</label><value>SRS v1.0</value></div>
+    </div>
+
+    <div class="section-title">Key Performance Indicators</div>
+    <div class="kpi-grid">
+      <div class="kpi-card"><span class="kpi-value">{{total_capture_points}}</span><span class="kpi-label">Total Capture Points</span></div>
+      <div class="kpi-card success"><span class="kpi-value">{{completion_percent}}%</span><span class="kpi-label">Completion %</span></div>
+      <div class="kpi-card warning"><span class="kpi-value">{{points_behind}}</span><span class="kpi-label">Points Behind</span></div>
+      <div class="kpi-card danger"><span class="kpi-value">{{photos_per_point}}</span><span class="kpi-label">Avg Photos / Point</span></div>
+    </div>
+
+    <div class="section-title">Delay Summary</div>
+    <table>
+      <thead><tr><th>Capture Point</th><th>Zone</th><th>Last Photo</th><th>Days Behind</th><th>Status</th></tr></thead>
+      <tbody>
+        {{#delayed_points}}
+        <tr><td>{{name}}</td><td>{{zone}}</td><td>{{last_photo_date}}</td><td>{{days_behind}}</td><td><span class="status-badge {{status_class}}">{{status_label}}</span></td></tr>
+        {{/delayed_points}}
+        {{^delayed_points}}
+        <tr><td colspan="5" style="text-align:center; color:#888;">No delayed points in this period ✅</td></tr>
+        {{/delayed_points}}
+      </tbody>
+    </table>
+
+    <div class="footer"><span>SHAHID — SRS v1.0 | Year 1 MVP</span><span>Automatically generated — {{generated_at}}</span></div>
+  </div>
+</body>
+</html>

@@ -71,6 +71,7 @@ router.get('/export', async (req: Request, res: Response) => {
       capture: {
         captured_by: photo.captured_by_name,
         captured_at: photo.captured_at,
+        is_ntp_synced: photo.is_ntp_synced,
         gps: {
           latitude: photo.gps_lat,
           longitude: photo.gps_lng,

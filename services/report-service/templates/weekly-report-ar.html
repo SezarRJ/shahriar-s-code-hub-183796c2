@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>التقرير الأسبوعي — شاهد</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Cairo', 'Arial', sans-serif;
+      direction: rtl;
+      text-align: right;
+      color: #1E3A5F;
+      background: #ffffff;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      padding: 20mm;
+      margin: 0 auto;
+      background: #ffffff;
+      page-break-after: always;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 3px solid #1E3A5F;
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+
+    .header-left {
+      text-align: left;
+    }
+
+    .header-left h1 {
+      font-size: 28px;
+      font-weight: 800;
+      color: #1E3A5F;
+      letter-spacing: -0.5px;
+    }
+
+    .header-left .subtitle {
+      font-size: 12px;
+      color: #666;
+      margin-top: 4px;
+    }
+
+    .header-right {
+      text-align: right;
+    }
+
+    .header-right .logo {
+      font-size: 32px;
+      font-weight: 800;
+      color: #1E3A5F;
+    }
+
+    .header-right .tagline {
+      font-size: 11px;
+      color: #888;
+    }
+
+    .meta-box {
+      background: #f5f7fa;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+    }
+
+    .meta-item label {
+      font-size: 11px;
+      color: #888;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .meta-item value {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1E3A5F;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .kpi-card {
+      background: #1E3A5F;
+      color: #fff;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .kpi-card .kpi-value {
+      font-size: 28px;
+      font-weight: 800;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .kpi-card .kpi-label {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+
+    .kpi-card.warning {
+      background: #C8963E;
+    }
+
+    .kpi-card.danger {
+      background: #c0392b;
+    }
+
+    .kpi-card.success {
+      background: #27ae60;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1E3A5F;
+      border-right: 4px solid #C8963E;
+      padding-right: 12px;
+      margin-bottom: 16px;
+      margin-top: 32px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 24px;
+    }
+
+    th, td {
+      padding: 10px 12px;
+      text-align: right;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    th {
+      background: #f5f7fa;
+      font-weight: 700;
+      font-size: 12px;
+      color: #666;
+      text-transform: uppercase;
+    }
+
+    td {
+      font-size: 13px;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .status-on-time { background: #d4edda; color: #155724; }
+    .status-delayed { background: #f8d7da; color: #721c24; }
+    .status-critical { background: #f5c6cb; color: #721c24; border: 1px solid #f5c6cb; }
+    .status-overdue { background: #fff3cd; color: #856404; }
+
+    .photo-thumb {
+      width: 60px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+
+    .footer {
+      margin-top: 40px;
+      padding-top: 16px;
+      border-top: 1px solid #e0e0e0;
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #888;
+    }
+
+    .evidence-box {
+      background: #f0f4f8;
+      border: 1px solid #d0dae6;
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 11px;
+      font-family: 'Courier New', monospace;
+      direction: ltr;
+      text-align: left;
+      margin-top: 8px;
+    }
+
+    .evidence-box .label {
+      font-weight: 700;
+      color: #1E3A5F;
+      display: inline-block;
+      width: 120px;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    .integrity-banner {
+      background: #e8f4f8;
+      border: 1px solid #b8d8e8;
+      border-radius: 6px;
+      padding: 12px 16px;
+      margin-bottom: 24px;
+      font-size: 12px;
+      color: #1E3A5F;
+    }
+
+    .integrity-banner strong {
+      font-weight: 700;
+    }
+
+    @media print {
+      .page { margin: 0; page-break-after: always; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Page 1: Executive Summary -->
+  <div class="page">
+    <div class="header">
+      <div class="header-left">
+        <h1>التقرير الأسبوعي</h1>
+        <div class="subtitle">فترة التقرير: {{period_start}} — {{period_end}}</div>
+      </div>
+      <div class="header-right">
+        <div class="logo">شاهد</div>
+        <div class="tagline">العين الرقمية لمدير المشروع</div>
+      </div>
+    </div>
+
+    <div class="integrity-banner">
+      <strong>🔒 سلامة البيانات:</strong> جميع الصور والبيانات المرفقة في هذا التقرير محمية بتجزئة SHA-256 ولا يمكن تعديلها بعد التقاطها.
+      رقم التحقق: <code>{{report_hash}}</code>
+    </div>
+
+    <div class="meta-box">
+      <div class="meta-item">
+        <label>اسم المشروع</label>
+        <value>{{project_name}}</value>
+      </div>
+      <div class="meta-item">
+        <label>العنوان</label>
+        <value>{{project_address}}</value>
+      </div>
+      <div class="meta-item">
+        <label>تاريخ التوليد</label>
+        <value>{{generated_at}}</value>
+      </div>
+      <div class="meta-item">
+        <label>المستخدم</label>
+        <value>{{generated_by}}</value>
+      </div>
+      <div class="meta-item">
+        <label>اللغة</label>
+        <value>العربية</value>
+      </div>
+      <div class="meta-item">
+        <label>الإصدار</label>
+        <value>SRS v1.0</value>
+      </div>
+    </div>
+
+    <div class="section-title">مؤشرات الأداء الرئيسية</div>
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <span class="kpi-value">{{total_capture_points}}</span>
+        <span class="kpi-label">إجمالي نقاط التقاط</span>
+      </div>
+      <div class="kpi-card success">
+        <span class="kpi-value">{{completion_percent}}%</span>
+        <span class="kpi-label">نسبة الإنجاز</span>
+      </div>
+      <div class="kpi-card warning">
+        <span class="kpi-value">{{points_behind}}</span>
+        <span class="kpi-label">نقاط متأخرة</span>
+      </div>
+      <div class="kpi-card danger">
+        <span class="kpi-value">{{photos_per_point}}</span>
+        <span class="kpi-label">متوسط الصور لكل نقطة</span>
+      </div>
+    </div>
+
+    <div class="section-title">ملخص التأخير</div>
+    <table>
+      <thead>
+        <tr>
+          <th>نقطة التقاط</th>
+          <th>المنطقة</th>
+          <th>آخر صورة</th>
+          <th>الأيام المتأخرة</th>
+          <th>الحالة</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#delayed_points}}
+        <tr>
+          <td>{{name}}</td>
+          <td>{{zone}}</td>
+          <td>{{last_photo_date}}</td>
+          <td>{{days_behind}}</td>
+          <td><span class="status-badge {{status_class}}">{{status_label}}</span></td>
+        </tr>
+        {{/delayed_points}}
+        {{^delayed_points}}
+        <tr>
+          <td colspan="5" style="text-align:center; color:#888;">لا توجد نقاط متأخرة في هذه الفترة ✅</td>
+        </tr>
+        {{/delayed_points}}
+      </tbody>
+    </table>
+
+    <div class="footer">
+      <span>شاهد — SRS v1.0 | Year 1 MVP</span>
+      <span>تم إنشاء هذا التقرير تلقائياً — {{generated_at}}</span>
+    </div>
+  </div>
+
+  <!-- Page 2: Capture Point Details -->
+  <div class="page">
+    <div class="header">
+      <div class="header-left">
+        <h1>تفاصيل نقاط التقاط</h1>
+        <div class="subtitle">{{project_name}} — {{period_start}} إلى {{period_end}}</div>
+      </div>
+      <div class="header-right">
+        <div class="logo">شاهد</div>
+      </div>
+    </div>
+
+    <div class="section-title">النقاط المكتملة والمعلقة</div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>نقطة التقاط</th>
+          <th>المنطقة</th>
+          <th>المرحلة المتوقعة</th>
+          <th>الصور</th>
+          <th>آخر تحديث</th>
+          <th>الحالة</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#capture_points}}
+        <tr>
+          <td>{{index}}</td>
+          <td>{{name}}</td>
+          <td>{{zone}}</td>
+          <td>{{expected_stage}}</td>
+          <td>{{photo_count}}</td>
+          <td>{{last_capture_date}}</td>
+          <td><span class="status-badge {{status_class}}">{{status_label}}</span></td>
+        </tr>
+        {{/capture_points}}
+      </tbody>
+    </table>
+
+    <div class="footer">
+      <span>شاهد — التقرير الأسبوعي</span>
+      <span>صفحة 2</span>
+    </div>
+  </div>
+
+  <!-- Page 3: Evidence & Integrity (if needed) -->
+  <div class="page">
+    <div class="header">
+      <div class="header-left">
+        <h1>سجل التحقق من الصور</h1>
+        <div class="subtitle">SHA-256 | GPS | NTP Timestamp</div>
+      </div>
+      <div class="header-right">
+        <div class="logo">شاهد</div>
+      </div>
+    </div>
+
+    <div class="section-title">التحقق من النزاهة</div>
+    <p style="font-size:13px; color:#555; margin-bottom:16px;">
+      جميع الصور المرفقة في هذا التقرير محمية بتجزئة SHA-256. يمكن التحقق من أي صورة مستقلاً بإعادة حساب التجزئة ومقارنتها بالقيمة المخزنة.
+    </p>
+
+    {{#photos}}
+    <div style="margin-bottom:24px; border-bottom:1px solid #eee; padding-bottom:16px;">
+      <div style="display:flex; gap:16px; align-items:flex-start;">
+        <img src="{{file_url}}" class="photo-thumb" alt="صورة">
+        <div style="flex:1;">
+          <div style="font-weight:700; font-size:14px; margin-bottom:4px;">{{capture_point_name}}</div>
+          <div style="font-size:12px; color:#888; margin-bottom:8px;">{{captured_at}} | {{gps_lat}}, {{gps_lng}}</div>
+          <div class="evidence-box">
+            <div><span class="label">SHA-256:</span> {{hash_sha256}}</div>
+            <div><span class="label">GPS:</span> {{gps_lat}}, {{gps_lng}} (±{{gps_accuracy}}m)</div>
+            <div><span class="label">NTP:</span> {{is_ntp_synced ? "✅ متزامن" : "⚠️ وقت محلي"}}</div>
+            <div><span class="label">الجهاز:</span> {{device_model}}</div>
+            <div><span class="label">المستخدم:</span> {{captured_by}}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {{/photos}}
+
+    <div class="footer">
+      <span>شاهد — سجل التحقق من الصور</span>
+      <span>صفحة 3</span>
+    </div>
+  </div>
+
+</body>
+</html>

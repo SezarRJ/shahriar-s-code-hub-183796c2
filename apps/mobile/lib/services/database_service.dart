@@ -33,6 +33,7 @@ class DatabaseService {
             gps_lng REAL NOT NULL,
             gps_accuracy REAL,
             hash_sha256 TEXT NOT NULL,
+            is_ntp_synced INTEGER NOT NULL DEFAULT 1,
             device_id TEXT NOT NULL,
             device_model TEXT,
             notes TEXT,

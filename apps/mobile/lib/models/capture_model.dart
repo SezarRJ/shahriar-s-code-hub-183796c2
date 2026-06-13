@@ -17,6 +17,7 @@ class CaptureModel {
   final String? deviceModel;
   final String? notes;
   final bool synced;
+  final bool isNtpSynced; // false if NTP failed and local time was used
   final String? syncError;
   final String createdAt; // Local timestamp
 
@@ -32,6 +33,7 @@ class CaptureModel {
     required this.gpsLng,
     this.gpsAccuracy,
     required this.hashSha256,
+    required this.isNtpSynced,
     required this.deviceId,
     this.deviceModel,
     this.notes,
@@ -52,6 +54,7 @@ class CaptureModel {
       'gps_lng': gpsLng,
       'gps_accuracy': gpsAccuracy,
       'hash_sha256': hashSha256,
+      'is_ntp_synced': isNtpSynced ? 1 : 0,
       'device_id': deviceId,
       'device_model': deviceModel,
       'notes': notes,
@@ -74,6 +77,7 @@ class CaptureModel {
       gpsLng: map['gps_lng'] as double,
       gpsAccuracy: map['gps_accuracy'] as double?,
       hashSha256: map['hash_sha256'] as String,
+      isNtpSynced: (map['is_ntp_synced'] as int?) == 1,
       deviceId: map['device_id'] as String,
       deviceModel: map['device_model'] as String?,
       notes: map['notes'] as String?,
@@ -101,6 +105,7 @@ class CaptureModel {
       gpsLng: gpsLng,
       gpsAccuracy: gpsAccuracy,
       hashSha256: hashSha256,
+      isNtpSynced: isNtpSynced,
       deviceId: deviceId,
       deviceModel: deviceModel,
       notes: notes,
