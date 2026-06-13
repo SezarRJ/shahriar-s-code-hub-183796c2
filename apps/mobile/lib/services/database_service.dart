@@ -38,6 +38,7 @@ class DatabaseService {
             device_model TEXT,
             notes TEXT,
             synced INTEGER NOT NULL DEFAULT 0,
+            sync_attempts INTEGER NOT NULL DEFAULT 0,
             sync_error TEXT,
             created_at TEXT NOT NULL
           )

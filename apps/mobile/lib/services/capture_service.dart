@@ -170,10 +170,11 @@ class CaptureService {
       'synced': 1,
       'server_id': serverId,
       'sync_error': null,
+      'sync_attempts': 0,
     }, where: 'local_id = ?', whereArgs: [localId]);
   }
 
-  /// Mark sync error.
+  /// Mark sync error (legacy — used by external callers).
   Future<void> markSyncError(String localId, String error) async {
     final db = await DatabaseService.database;
     await db.update('photos_queue', {

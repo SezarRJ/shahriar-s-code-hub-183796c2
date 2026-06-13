@@ -20,7 +20,7 @@ void main() async {
   // Initialize local database (Hive + SQLite)
   await DatabaseService.init();
 
-  // Initialize sync service (background upload queue)
+  // Initialize sync service (background upload queue) and cleanup
   await SyncService.init();
 
   runApp(const ShahidApp());

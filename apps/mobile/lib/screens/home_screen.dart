@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../blocs/auth/auth_bloc.dart';
+  import '../blocs/auth/auth_bloc.dart';
 import '../blocs/capture/capture_bloc.dart';
 import '../blocs/sync/sync_bloc.dart';
+import '../services/cleanup_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,6 +15,22 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  QueueStatus? _queueStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshQueueStatus();
+  }
+
+  Future<void> _refreshQueueStatus() async {
+    final status = await CleanupService.checkQueueStatus();
+    if (mounted) {
+      setState(() {
+        _queueStatus = status;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -144,77 +161,161 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildQueueTab(BuildContext context) {
-    return BlocBuilder<CaptureBloc, CaptureState>(
-      builder: (context, state) {
-        int queueSize = 0;
-        if (state is CaptureQueueStatus) {
-          queueSize = state.queueSize;
-        }
+    final queueStatus = _queueStatus;
+    final queueSize = queueStatus?.total ?? 0;
+    final unsynced = queueStatus?.unsynced ?? 0;
+    final synced = queueStatus?.synced ?? 0;
+    final isWarning = queueStatus?.isWarning ?? false;
+    final isBlocked = queueStatus?.isBlocked ?? false;
+    final remaining = queueStatus?.remainingCapacity ?? CleanupService.maxQueueSize;
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Card(
+            color: isBlocked ? Theme.of(context).colorScheme.errorContainer : null,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  Text(
+                    'الصور في قائمة الانتظار',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        'الصور في قائمة الانتظار',
-                        style: Theme.of(context).textTheme.titleMedium,
+                      Column(
+                        children: [
+                          Text(
+                            '$unsynced',
+                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: unsynced > 0 ? Theme.of(context).colorScheme.primary : null,
+                            ),
+                          ),
+                          Text('غير مزامنة', style: Theme.of(context).textTheme.bodySmall),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        '$queueSize',
-                        style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: queueSize > 0 ? Theme.of(context).colorScheme.primary : null,
-                        ),
+                      const SizedBox(width: 24),
+                      Container(height: 40, width: 1, color: Colors.grey.shade300),
+                      const SizedBox(width: 24),
+                      Column(
+                        children: [
+                          Text(
+                            '$synced',
+                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          Text('مزامنة', style: Theme.of(context).textTheme.bodySmall),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          context.read<SyncBloc>().add(SyncTriggerRequested());
-                        },
-                        icon: const Icon(Icons.cloud_upload),
-                        label: const Text('مزامنة الآن'),
+                      const SizedBox(width: 24),
+                      Container(height: 40, width: 1, color: Colors.grey.shade300),
+                      const SizedBox(width: 24),
+                      Column(
+                        children: [
+                          Text(
+                            '$queueSize',
+                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: isBlocked
+                                  ? Theme.of(context).colorScheme.error
+                                  : isWarning
+                                      ? Theme.of(context).colorScheme.tertiary
+                                      : null,
+                            ),
+                          ),
+                          Text('المجموع', style: Theme.of(context).textTheme.bodySmall),
+                        ],
                       ),
                     ],
                   ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              BlocBuilder<SyncBloc, SyncState>(
-                builder: (context, syncState) {
-                  if (syncState is SyncInProgress) {
-                    return const Card(
-                      child: Padding(
-                        padding: EdgeInsets.all(16.0),
-                        child: Center(child: CircularProgressIndicator()),
+                  const SizedBox(height: 8),
+                  LinearProgressIndicator(
+                    value: queueSize / CleanupService.maxQueueSize,
+                    backgroundColor: Colors.grey.shade200,
+                    color: isBlocked
+                        ? Theme.of(context).colorScheme.error
+                        : isWarning
+                            ? Theme.of(context).colorScheme.tertiary
+                            : Theme.of(context).colorScheme.primary,
+                    minHeight: 8,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'السعة المتبقية: $remaining / ${CleanupService.maxQueueSize}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  if (isBlocked) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      '⚠️ قائمة الانتظار ممتلئة! سيتم حذف الصور القديمة تلقائياً.',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                        fontWeight: FontWeight.bold,
                       ),
-                    );
-                  }
-                  if (syncState is SyncFailure) {
-                    return Card(
-                      color: Theme.of(context).colorScheme.errorContainer,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Text(
-                          'خطأ في المزامنة: ${syncState.error}',
-                          style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer),
-                        ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                  if (isWarning && !isBlocked) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      '⚠️ قائمة الانتظار تقترب من السعة القصوى.',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.tertiary,
+                        fontWeight: FontWeight.bold,
                       ),
-                    );
-                  }
-                  return const SizedBox.shrink();
-                },
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      context.read<SyncBloc>().add(SyncTriggerRequested());
+                      _refreshQueueStatus();
+                    },
+                    icon: const Icon(Icons.cloud_upload),
+                    label: const Text('مزامنة الآن'),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        );
-      },
+          const SizedBox(height: 16),
+          BlocBuilder<SyncBloc, SyncState>(
+            builder: (context, syncState) {
+              if (syncState is SyncInProgress) {
+                return const Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                );
+              }
+              if (syncState is SyncFailure) {
+                return Card(
+                  color: Theme.of(context).colorScheme.errorContainer,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      'خطأ في المزامنة: ${syncState.error}',
+                      style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer),
+                    ),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+        ],
+      ),
     );
   }
 
