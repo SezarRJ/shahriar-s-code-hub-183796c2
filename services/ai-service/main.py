@@ -1,7 +1,11 @@
 """
 SHAHID AI Service
 Processes photos for construction stage classification and defect detection.
-Year 1: Uses pre-trained models / APIs (Google Vision, Claude).
+Year 1: Uses pre-trained models / APIs (Google Vision API, Claude Vision).
+Year 2: Custom model training deferred.
+
+Updated: Full integration with Google Vision API and Claude Vision.
+Implements concurrent workers with semaphore for throughput.
 """
 
 import os
@@ -10,25 +14,39 @@ import asyncio
 import hashlib
 from datetime import datetime
 from typing import Optional, List
+from concurrent.futures import ThreadPoolExecutor
 
 import httpx
 import redis.asyncio as redis
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, BackgroundTasks
 from pydantic import BaseModel, UUID4
 from dotenv import load_dotenv
 
+from vision_client import AIAggregator, VisionClient, GoogleVisionClient, ClaudeVisionClient
+
 load_dotenv()
 
-app = FastAPI(title="SHAHID AI Service", version="1.0.0")
+app = FastAPI(title="SHAHID AI Service", version="1.1.0")
 
 # Redis connection
-redis_client = redis.Redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"), decode_responses=True)
+redis_client = redis.Redis.from_url(
+    os.getenv("REDIS_URL", "redis://localhost:6379"),
+    decode_responses=True
+)
+
+# AI Model aggregator
+ai_aggregator = AIAggregator()
+
+# Concurrency limit: 10 parallel AI calls
+ai_semaphore = asyncio.Semaphore(10)
 
 # Database connection helper
 def get_db():
-    conn = psycopg2.connect(os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/postgres"))
+    conn = psycopg2.connect(
+        os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/postgres")
+    )
     return conn
 
 
@@ -44,65 +62,117 @@ class AIResultResponse(BaseModel):
     defect_flags: List[dict] = []
     processed_at: str
     model_version: str = "v1"
+    extracted_text: str = ""
+    notes: str = ""
+
+
+async def download_image_from_url(image_url: str) -> bytes:
+    """Download image from S3/MinIO or HTTP URL."""
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.get(image_url)
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to download image from {image_url}: {response.status_code}"
+            )
+        return response.content
+
+
+async def analyze_with_aggregator(image_bytes: bytes) -> dict:
+    """Run AI analysis with concurrency limit."""
+    async with ai_semaphore:
+        return await ai_aggregator.analyze(image_bytes)
 
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "service": "ai-service", "version": "1.0.0"}
+    return {
+        "status": "ok",
+        "service": "ai-service",
+        "version": "1.1.0",
+        "models": {
+            "google_vision": bool(os.getenv("GOOGLE_VISION_API_KEY")),
+            "claude_vision": bool(os.getenv("ANTHROPIC_API_KEY")),
+        }
+    }
 
 
 @app.post("/analyze", response_model=AIResultResponse)
 async def analyze_photo(request: AIResultRequest):
     """
     Analyze a single photo for construction stage classification and defect detection.
-    In Year 1, this simulates or delegates to external APIs.
     """
     try:
-        # Fetch photo from URL or download
-        # In production: download image from S3, analyze with Google Vision / Claude
+        # Download image from URL
+        image_bytes = await download_image_from_url(request.image_url)
 
-        # Simulated classification for Year 1 MVP
-        stage_classification = "structure"
-        confidence_score = 0.85
-        defect_flags = []
+        # Run AI analysis
+        result = await analyze_with_aggregator(image_bytes)
+
+        if "error" in result and result["error"]:
+            # If no AI keys configured, fall back to simulated classification
+            # for development/demo purposes
+            if not os.getenv("GOOGLE_VISION_API_KEY") and not os.getenv("ANTHROPIC_API_KEY"):
+                result = simulate_classification(image_bytes)
+            else:
+                raise HTTPException(status_code=503, detail=result["error"])
 
         # Store result in database
         conn = get_db()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute(
             """
-            INSERT INTO ai_results (photo_id, stage_classification, confidence_score, defect_flags, model_version)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO ai_results (photo_id, stage_classification, confidence_score, defect_flags, model_version, extracted_text, notes)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (photo_id) DO UPDATE SET
                 stage_classification = EXCLUDED.stage_classification,
                 confidence_score = EXCLUDED.confidence_score,
                 defect_flags = EXCLUDED.defect_flags,
                 model_version = EXCLUDED.model_version,
+                extracted_text = EXCLUDED.extracted_text,
+                notes = EXCLUDED.notes,
                 reprocessed_at = NOW()
             RETURNING *
             """,
-            (str(request.photo_id), stage_classification, confidence_score, json.dumps(defect_flags), "v1"),
+            (
+                str(request.photo_id),
+                result.get("stage_classification", "unknown"),
+                result.get("confidence_score", 0.0),
+                json.dumps(result.get("defect_flags", [])),
+                result.get("model", "aggregator_v1"),
+                result.get("extracted_text", ""),
+                result.get("notes", ""),
+            ),
         )
-        result = cursor.fetchone()
+        db_result = cursor.fetchone()
         conn.commit()
         cursor.close()
         conn.close()
 
+        # If defects detected, auto-create snag (as OPEN, requiring human review)
+        defect_flags = result.get("defect_flags", [])
+        if defect_flags and len(defect_flags) > 0:
+            await create_snag_from_defects(str(request.photo_id), defect_flags)
+
         return AIResultResponse(
             photo_id=str(request.photo_id),
-            stage_classification=stage_classification,
-            confidence_score=confidence_score,
-            defect_flags=defect_flags,
+            stage_classification=result.get("stage_classification"),
+            confidence_score=result.get("confidence_score"),
+            defect_flags=result.get("defect_flags", []),
             processed_at=datetime.utcnow().isoformat(),
-            model_version="v1",
+            model_version=result.get("model", "aggregator_v1"),
+            extracted_text=result.get("extracted_text", ""),
+            notes=result.get("notes", ""),
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/batch-analyze")
-async def batch_analyze():
+async def batch_analyze(background_tasks: BackgroundTasks):
     """
     Queue all unprocessed photos for batch analysis.
     """
@@ -155,14 +225,112 @@ async def get_results(photo_id: UUID4):
 
         return dict(result)
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+def simulate_classification(image_bytes: bytes) -> dict:
+    """
+    Fallback simulation for development when no AI keys are configured.
+    Returns realistic but clearly marked as simulated data.
+    """
+    # Use hash to deterministically "classify" (for demo consistency)
+    image_hash = hashlib.md5(image_bytes[:1024]).hexdigest()
+    stages = ["foundations", "structure", "mep", "finishing"]
+    stage_index = int(image_hash[:8], 16) % 4
+    stage = stages[stage_index]
+    confidence = 0.6 + (int(image_hash[8:12], 16) % 30) / 100.0
+
+    # Randomly detect defects for demo
+    defect_categories = ["crack", "water_damage", "incomplete_work", "rust"]
+    defects = []
+    if int(image_hash[12:16], 16) % 100 < 30:  # 30% chance of defects
+        defect_count = 1 + (int(image_hash[16:20], 16) % 2)
+        for i in range(defect_count):
+            cat_index = (int(image_hash[20+i*4:24+i*4], 16) + i) % 4
+            defects.append({
+                "category": defect_categories[cat_index],
+                "confidence": round(0.5 + (int(image_hash[24+i*4:28+i*4], 16) % 40) / 100.0, 4),
+                "description": f"Detected {defect_categories[cat_index]} during simulation",
+                "source": "simulated",
+                "note": "This is simulated data. No AI model was called. Configure GOOGLE_VISION_API_KEY or ANTHROPIC_API_KEY for real analysis.",
+            })
+
+    return {
+        "stage_classification": stage,
+        "confidence_score": round(confidence, 4),
+        "defect_flags": defects,
+        "extracted_text": "",
+        "notes": f"SIMULATED ANALYSIS. Deterministic classification based on image hash prefix. For real analysis, configure AI API keys.",
+        "model": "simulated_dev",
+    }
+
+
+async def create_snag_from_defects(photo_id: str, defects: List[dict]) -> None:
+    """
+    Auto-create snag entries for detected defects.
+    AI only creates OPEN snags — human must review and close.
+    """
+    try:
+        conn = get_db()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Get photo and project info
+        cursor.execute("""
+            SELECT p.capture_point_id, cp.zone_id, z.project_id
+            FROM photos p
+            JOIN capture_points cp ON cp.id = p.capture_point_id
+            JOIN zones z ON z.id = cp.zone_id
+            WHERE p.id = %s
+        """, (photo_id,))
+        photo_info = cursor.fetchone()
+
+        if not photo_info:
+            return
+
+        # Create snag for each defect (category)
+        seen_categories = set()
+        for defect in defects:
+            category = defect.get("category", "unknown")
+            if category in seen_categories:
+                continue
+            seen_categories.add(category)
+
+            confidence = defect.get("confidence", 0.0)
+            severity = "low" if confidence < 0.7 else "medium" if confidence < 0.85 else "high"
+
+            cursor.execute("""
+                INSERT INTO snags (project_id, photo_id, capture_point_id, category, severity, status, description, created_by)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (project_id, photo_id, category) DO NOTHING
+            """, (
+                photo_info["project_id"],
+                photo_id,
+                photo_info["capture_point_id"],
+                category,
+                severity,
+                "open",  # AI never closes — human must review
+                f"AI detected {category} with confidence {confidence:.2f}. Source: {defect.get('source', 'unknown')}. "
+                f"{defect.get('description', '')}",
+                "ai_system",  # System user ID for AI-created snags
+            ))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+    except Exception as e:
+        print(f"Failed to create snag from defects: {e}")
+        # Don't fail the AI analysis if snag creation fails
 
 
 # Background worker to process AI queue
 async def ai_worker():
     """
     Continuously process photos from the Redis queue.
+    Uses concurrency semaphore for throughput.
     """
     while True:
         try:
@@ -175,12 +343,17 @@ async def ai_worker():
             photo_id = job["photo_id"]
             image_url = job["image_url"]
 
-            # Simulate analysis delay
-            await asyncio.sleep(0.5)
+            print(f"Processing AI for photo {photo_id}")
 
             # Run analysis
-            await analyze_photo(AIResultRequest(photo_id=photo_id, image_url=image_url))
-            print(f"Processed AI for photo {photo_id}")
+            request = AIResultRequest(photo_id=photo_id, image_url=image_url)
+            try:
+                await analyze_photo(request)
+                print(f"✅ AI analysis completed for photo {photo_id}")
+            except Exception as e:
+                print(f"❌ AI analysis failed for photo {photo_id}: {e}")
+                # Re-queue with retry count? (Could implement exponential backoff)
+                # For now, just log and continue
 
         except Exception as e:
             print(f"AI worker error: {e}")
@@ -190,3 +363,8 @@ async def ai_worker():
 @app.on_event("startup")
 async def startup():
     asyncio.create_task(ai_worker())
+    print("AI Service started. Models available:")
+    print(f"  - Google Vision: {bool(os.getenv('GOOGLE_VISION_API_KEY'))}")
+    print(f"  - Claude Vision: {bool(os.getenv('ANTHROPIC_API_KEY'))}")
+    if not os.getenv('GOOGLE_VISION_API_KEY') and not os.getenv('ANTHROPIC_API_KEY'):
+        print("  ⚠️ No AI API keys configured. Running in simulation mode.")

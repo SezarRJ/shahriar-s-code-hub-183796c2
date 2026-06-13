@@ -15,6 +15,8 @@ import {
   ListItemAvatar,
   Avatar,
   Chip,
+  Alert,
+  CircularProgress,
 } from '@mui/material';
 import {
   Apartment,
@@ -25,7 +27,7 @@ import {
   ArrowForward,
 } from '@mui/icons-material';
 import { useQuery } from 'react-query';
-import { fetchProjects, fetchReports, fetchNotifications } from '../services/api';
+import { fetchProjects, fetchReports, fetchNotifications, api } from '../services/api';
 
 export default function DashboardPage() {
   const { t } = useTranslation();
@@ -34,7 +36,13 @@ export default function DashboardPage() {
   const { data: projectsData, isLoading: projectsLoading } = useQuery('projects', fetchProjects);
   const { data: reportsData, isLoading: reportsLoading } = useQuery('reports', fetchReports);
   const { data: notificationsData } = useQuery('notifications', fetchNotifications);
+  const { data: kpiData, isLoading: kpiLoading } = useQuery(
+    'dashboard-kpi',
+    () => api.get('/dashboard/summary').then((r) => r.data),
+    { refetchInterval: 300000 } // 5-minute auto-refresh (FR-4.7)
+  );
 
+  const kpi = kpiData?.data || {};
   const projects = projectsData?.data?.data || [];
   const reports = reportsData?.data?.data || [];
   const notifications = notificationsData?.data?.data || [];
@@ -44,28 +52,28 @@ export default function DashboardPage() {
   const kpiCards = [
     {
       title: t('activeProjects'),
-      value: activeProjects,
+      value: kpi.active_projects ?? activeProjects,
       icon: <Apartment />,
       color: 'primary' as const,
       link: '/projects',
     },
     {
       title: t('totalPhotos'),
-      value: '0', // Will be populated from aggregated data
+      value: kpi.total_photos ?? 0,
       icon: <CameraAlt />,
       color: 'secondary' as const,
       link: '/projects',
     },
     {
       title: t('overduePoints'),
-      value: '0',
+      value: kpi.overdue_points ?? 0,
       icon: <Warning />,
       color: 'warning' as const,
       link: '/projects',
     },
     {
       title: t('openSnags'),
-      value: '0',
+      value: kpi.open_snags ?? 0,
       icon: <BugReport />,
       color: 'error' as const,
       link: '/evidence',
@@ -77,6 +85,18 @@ export default function DashboardPage() {
       <Typography variant="h4" fontWeight="bold" gutterBottom>
         {t('dashboard')}
       </Typography>
+
+      {kpiLoading && (
+        <Box sx={{ mb: 2 }}>
+          <LinearProgress />
+        </Box>
+      )}
+
+      {kpi.overdue_points > 0 && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          {`⚠️ ${kpi.overdue_points} نقاط التقاط متأخرة في المشاريع النشطة. راجع التفاصيل في المشاريع.`}
+        </Alert>
+      )}
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {kpiCards.map((kpi) => (

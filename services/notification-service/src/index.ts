@@ -11,6 +11,7 @@ import { Pool } from 'pg';
 import Redis from 'ioredis';
 import nodemailer from 'nodemailer';
 import { logger } from './utils/logger';
+import { OverdueChecker } from './jobs/overdueChecker';
 
 dotenv.config();
 
@@ -36,6 +37,10 @@ app.use(express.json());
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok', service: 'notification-service' });
 });
+
+// Start overdue checker (AC-05: automatic overdue notifications)
+const overdueChecker = new OverdueChecker(pool, `http://localhost:${PORT}`);
+overdueChecker.start();
 
 /**
  * POST /send

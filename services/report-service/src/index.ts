@@ -11,6 +11,7 @@ import { Pool } from 'pg';
 import Redis from 'ioredis';
 import { logger } from './utils/logger';
 import { generateWeeklyReport } from './generator/pdfGenerator';
+import { WeeklyReportCron } from './jobs/weeklyReportCron';
 import crypto from 'crypto';
 
 dotenv.config();
@@ -111,6 +112,11 @@ app.get('/schedule-status/:project_id', async (req, res) => {
 app.listen(PORT, () => {
   logger.info(`Report Service running on port ${PORT}`);
 });
+
+// Start weekly report cron job (AC-04: auto-generate every Monday 08:00)
+const reportCron = new WeeklyReportCron(pool, redis);
+reportCron.start();
+logger.info('Weekly report cron job started');
 
 // Worker: process report queue
 async function processReportQueue() {
