@@ -28,6 +28,7 @@ import notificationRoutes from './routes/notifications';
 import evidenceRoutes from './routes/evidence';
 import userRoutes from './routes/users';
 import dashboardRoutes from './routes/dashboard';
+import mfaRoutes from './routes/mfa';
 
 dotenv.config();
 
@@ -72,6 +73,7 @@ app.use('/api/v1/notifications', standardRateLimit, notificationRoutes);
 app.use('/api/v1/evidence', standardRateLimit, evidenceRoutes);
 
 app.use('/api/v1/dashboard', standardRateLimit, dashboardRoutes);
+app.use('/api/v1/mfa', standardRateLimit, mfaRoutes);
 
 // Upload routes — strict rate limit (10 uploads/min per user, 500 per tenant)
 app.use('/api/v1/photos', uploadRateLimit, photoRoutes);
