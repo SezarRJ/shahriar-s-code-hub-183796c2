@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import {
   Box,
   Paper,
@@ -24,7 +25,16 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    document.title = `${t('appName')} — ${t('login')}`;
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+      metaDesc.setAttribute('content', t('loginPageDescription') || 'Secure login to the SHAHID platform');
+    }
+  }, [t]);
+
   const handleSubmit = async (e: React.FormEvent) => {
+
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -68,12 +78,40 @@ export default function LoginPage() {
           <LockOutlined sx={{ fontSize: 32 }} />
         </Avatar>
 
-        <Typography variant="h4" fontWeight="bold" color="primary">
+  return (
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        bgcolor: 'background.default',
+        p: 2,
+      }}
+    >
+      <Paper
+        elevation={4}
+        sx={{
+          p: 4,
+          width: '100%',
+          maxWidth: 420,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 2,
+        }}
+      >
+        <Avatar sx={{ bgcolor: 'primary.main', width: 56, height: 56 }}>
+          <LockOutlined sx={{ fontSize: 32 }} />
+        </Avatar>
+
+        <Typography variant="h4" component="h1" fontWeight="bold" color="primary">
           {t('appName')}
         </Typography>
         <Typography variant="body1" color="text.secondary">
           {t('appSubtitle')}
         </Typography>
+
 
         {error && <Alert severity="error" sx={{ width: '100%' }}>{error}</Alert>}
 

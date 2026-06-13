@@ -1,6 +1,8 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
+
   Drawer,
   AppBar,
   Toolbar,
@@ -41,8 +43,10 @@ const menuItems = [
 ];
 
 export default function Layout() {
+  const { t } = useTranslation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
+
   const location = useLocation();
   const { user, logout } = useAuthStore();
 
@@ -118,17 +122,19 @@ export default function Layout() {
             edge="end"
             onClick={handleDrawerToggle}
             sx={{ display: { sm: 'none' }, ml: 2 }}
+            aria-label={t('openMenu') || 'Open menu'}
           >
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             {menuItems.find((i) => i.path === location.pathname)?.label || 'شاهد'}
           </Typography>
-          <IconButton color="inherit">
+          <IconButton color="inherit" aria-label={t('notifications') || 'Notifications'}>
             <Badge badgeContent={4} color="error">
               <Notifications />
             </Badge>
           </IconButton>
+
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 2 }}>
             <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
               {user?.name?.charAt(0) || 'U'}

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -33,7 +34,16 @@ export default function DashboardPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    document.title = `${t('appName')} — ${t('dashboard')}`;
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+      metaDesc.setAttribute('content', t('dashboardPageDescription') || 'Project overview, KPI tracking and latest reports');
+    }
+  }, [t]);
+
   const { data: projectsData, isLoading: projectsLoading } = useQuery('projects', fetchProjects);
+
   const { data: reportsData, isLoading: reportsLoading } = useQuery('reports', fetchReports);
   const { data: notificationsData } = useQuery('notifications', fetchNotifications);
   const { data: kpiData, isLoading: kpiLoading } = useQuery(
@@ -82,11 +92,12 @@ export default function DashboardPage() {
 
   return (
     <Box>
-      <Typography variant="h4" fontWeight="bold" gutterBottom>
+      <Typography variant="h4" component="h1" fontWeight="bold" gutterBottom>
         {t('dashboard')}
       </Typography>
 
       {kpiLoading && (
+
         <Box sx={{ mb: 2 }}>
           <LinearProgress />
         </Box>
