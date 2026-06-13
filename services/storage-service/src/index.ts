@@ -77,18 +77,37 @@ app.get('/verify/:key', async (req, res) => {
     const { key } = req.params;
     const { data: expectedHash } = req.query;
 
+    // 1. Get stored hash from metadata for comparison
     const head = await s3.send(new HeadObjectCommand({
       Bucket: BUCKET,
       Key: key,
     }));
-
     const storedHash = head.Metadata?.['sha256'] || '';
 
-    // If expected hash provided, compare; otherwise return stored hash
+    // 2. Perform actual cryptographic verification by re-hashing the file
+    const obj = await s3.send(new GetObjectCommand({
+      Bucket: BUCKET,
+      Key: key,
+    }));
+
+    if (!(obj.Body instanceof Readable)) {
+      throw new Error('Unexpected object body type');
+    }
+
+    const hash = crypto.createHash('sha256');
+    for await (const chunk of obj.Body) {
+      hash.update(chunk);
+    }
+    const computedHash = hash.digest('hex');
+
+    const isIntegrityIntact = computedHash === storedHash;
+
     res.status(200).json({
       key,
       stored_hash: storedHash,
-      verified: expectedHash ? storedHash === expectedHash : null,
+      computed_hash: computedHash,
+      integrity_intact: isIntegrityIntact,
+      verified: expectedHash ? computedHash === expectedHash : null,
       last_modified: head.LastModified,
     });
   } catch (err) {

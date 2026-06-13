@@ -24,9 +24,12 @@ export interface TenantContext {
  */
 export async function getClientWithContext(context: TenantContext) {
   const client = await pool.connect();
-  await client.query(`SET app.current_tenant_id = '${context.tenant_id}'`);
-  await client.query(`SET app.current_user_role = '${context.role}'`);
-  await client.query(`SET app.current_user_id = '${context.user_id}'`);
+  
+  // Use set_config to prevent SQL injection in session variables
+  await client.query('SELECT set_config($1, $2, true)', ['app.current_tenant_id', context.tenant_id]);
+  await client.query('SELECT set_config($1, $2, true)', ['app.current_user_role', context.role]);
+  await client.query('SELECT set_config($1, $2, true)', ['app.current_user_id', context.user_id]);
+  
   return client;
 }
 
