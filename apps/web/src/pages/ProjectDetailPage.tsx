@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+
 import { useTranslation } from 'react-i18next';
 import { useQuery } from 'react-query';
 import {
@@ -30,7 +31,16 @@ export default function ProjectDetailPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState(0);
 
+  useEffect(() => {
+    document.title = `${t('appName')} — Project Details`;
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+      metaDesc.setAttribute('content', t('projectDetailPageDescription') || 'Detailed view of construction project progress, zones and capture points');
+    }
+  }, [t]);
+
   const { data, isLoading } = useQuery(['project', id], () => fetchProject(id!));
+
   const project = data?.data?.data;
 
   return (
@@ -43,11 +53,12 @@ export default function ProjectDetailPage() {
         العودة إلى المشاريع
       </Button>
 
-      <Typography variant="h4" fontWeight="bold" gutterBottom>
+      <Typography variant="h4" component="h1" fontWeight="bold" gutterBottom>
         {isLoading ? 'جارٍ التحميل...' : project?.name || 'مشروع'}
       </Typography>
 
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3 }}>
+
         <Tab label="نظرة عامة" />
         <Tab label="نقاط التقاط" />
         <Tab label="الصور" />

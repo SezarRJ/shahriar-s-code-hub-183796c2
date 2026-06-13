@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+
 import { useQuery } from 'react-query';
 import {
   Box,
@@ -39,7 +40,16 @@ export default function ReportsPage() {
   const { data, isLoading, refetch } = useQuery('reports', fetchReports);
   const reports = data?.data?.data || [];
 
+  useEffect(() => {
+    document.title = `${t('appName')} — ${t('reports')}`;
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+      metaDesc.setAttribute('content', t('reportsPageDescription') || 'Generate and review weekly construction reports and delay analysis');
+    }
+  }, [t]);
+
   const [openDialog, setOpenDialog] = useState(false);
+
   const [selectedProject, setSelectedProject] = useState('');
   const [generating, setGenerating] = useState(false);
 
@@ -59,13 +69,14 @@ export default function ReportsPage() {
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" fontWeight="bold">
+        <Typography variant="h4" component="h1" fontWeight="bold">
           {t('reports')}
         </Typography>
         <Button variant="contained" startIcon={<Assessment />} onClick={() => setOpenDialog(true)}>
           {t('generateReport')}
         </Button>
       </Box>
+
 
       <Card>
         <CardContent>

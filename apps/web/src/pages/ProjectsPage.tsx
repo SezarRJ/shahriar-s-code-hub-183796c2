@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { useTranslation } from 'react-i18next';
 import { useQuery } from 'react-query';
 import {
@@ -44,7 +45,16 @@ export default function ProjectsPage() {
   const { data, isLoading, refetch } = useQuery('projects', fetchProjects);
   const projects = data?.data?.data || [];
 
+  useEffect(() => {
+    document.title = `${t('appName')} — ${t('projects')}`;
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+      metaDesc.setAttribute('content', t('projectsPageDescription') || 'Manage construction projects, zones and capture frequency');
+    }
+  }, [t]);
+
   const [search, setSearch] = useState('');
+
   const [openDialog, setOpenDialog] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [newProject, setNewProject] = useState({
@@ -70,13 +80,14 @@ export default function ProjectsPage() {
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" fontWeight="bold">
+        <Typography variant="h4" component="h1" fontWeight="bold">
           {t('projects')}
         </Typography>
         <Fab color="primary" onClick={() => setOpenDialog(true)}>
           <Add />
         </Fab>
       </Box>
+
 
       <TextField
         fullWidth

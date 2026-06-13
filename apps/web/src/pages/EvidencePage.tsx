@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+
 import {
   Box,
   Typography,
@@ -28,7 +29,16 @@ export default function EvidencePage() {
   const [evidence, setEvidence] = useState<any>(null);
   const [verified, setVerified] = useState<boolean | null>(null);
 
+  useEffect(() => {
+    document.title = `${t('appName')} — ${t('evidenceExport')}`;
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+      metaDesc.setAttribute('content', t('evidencePageDescription') || 'Verify and export immutable photo evidence for construction projects');
+    }
+  }, [t]);
+
   const handleExport = async () => {
+
     if (!photoId) return;
     setLoading(true);
     try {
@@ -57,11 +67,12 @@ export default function EvidencePage() {
 
   return (
     <Box>
-      <Typography variant="h4" fontWeight="bold" gutterBottom>
+      <Typography variant="h4" component="h1" fontWeight="bold" gutterBottom>
         {t('evidenceExport')}
       </Typography>
 
       <Card sx={{ mb: 3 }}>
+
         <CardContent>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
             <TextField

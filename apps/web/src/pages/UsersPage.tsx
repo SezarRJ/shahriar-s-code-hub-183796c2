@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+
 import { useQuery } from 'react-query';
 import {
   Box,
@@ -35,7 +36,16 @@ export default function UsersPage() {
   const { data, isLoading, refetch } = useQuery('users', fetchUsers);
   const users = data?.data?.data || [];
 
+  useEffect(() => {
+    document.title = `${t('appName')} — ${t('users')}`;
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+      metaDesc.setAttribute('content', t('usersPageDescription') || 'Manage system users, roles and MFA status');
+    }
+  }, [t]);
+
   const [openDialog, setOpenDialog] = useState(false);
+
   const [newUser, setNewUser] = useState({
     name: '',
     email: '',
@@ -52,13 +62,14 @@ export default function UsersPage() {
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" fontWeight="bold">
+        <Typography variant="h4" component="h1" fontWeight="bold">
           {t('users')}
         </Typography>
         <Button variant="contained" startIcon={<Add />} onClick={() => setOpenDialog(true)}>
           إضافة مستخدم
         </Button>
       </Box>
+
 
       <Card>
         <CardContent>

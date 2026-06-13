@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+
 import {
   Box,
   Typography,
@@ -27,7 +28,16 @@ export default function SettingsPage() {
   const [criticalThreshold, setCriticalThreshold] = useState('3');
   const [saved, setSaved] = useState(false);
 
+  useEffect(() => {
+    document.title = `${t('appName')} — ${t('settings')}`;
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+      metaDesc.setAttribute('content', t('settingsPageDescription') || 'Configure your account preferences and project alert thresholds');
+    }
+  }, [t]);
+
   const handleSave = () => {
+
     i18n.changeLanguage(language);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
@@ -35,11 +45,12 @@ export default function SettingsPage() {
 
   return (
     <Box>
-      <Typography variant="h4" fontWeight="bold" gutterBottom>
+      <Typography variant="h4" component="h1" fontWeight="bold" gutterBottom>
         {t('settings')}
       </Typography>
 
       {saved && (
+
         <Alert severity="success" sx={{ mb: 3 }}>
           تم حفظ الإعدادات بنجاح
         </Alert>
