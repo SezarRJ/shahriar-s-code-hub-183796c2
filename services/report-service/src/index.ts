@@ -26,7 +26,27 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
+/**
+ * Service-to-Service Auth Middleware
+ */
+const verifyServiceToken = (req: Request, res: Response, next: NextFunction) => {
+  const token = req.headers['x-service-token'];
+  const expectedToken = process.env.INTERNAL_SERVICE_TOKEN;
+
+  if (!expectedToken) {
+    return next();
+  }
+
+  if (token !== expectedToken) {
+    logger.warn({ message: 'Unauthorized service access attempt', ip: req.ip });
+    res.status(401).json({ error: 'Invalid or missing internal service token' });
+    return;
+  }
+  next();
+};
+
 app.get('/health', (_req, res) => {
+
   res.status(200).json({ status: 'ok', service: 'report-service' });
 });
 
@@ -34,8 +54,9 @@ app.get('/health', (_req, res) => {
  * POST /generate
  * Queues report generation for a project.
  */
-app.post('/generate', async (req, res) => {
+app.post('/generate', verifyServiceToken, async (req, res) => {
   try {
+
     const { project_id, period_start, period_end, triggered_by = 'manual' } = req.body;
 
     if (!project_id) {
@@ -66,8 +87,9 @@ app.post('/generate', async (req, res) => {
  * GET /schedule-status/:project_id
  * Returns capture point schedule comparison data.
  */
-app.get('/schedule-status/:project_id', async (req, res) => {
+app.get('/schedule-status/:project_id', verifyServiceToken, async (req, res) => {
   try {
+
     const { project_id } = req.params;
 
     const result = await pool.query(

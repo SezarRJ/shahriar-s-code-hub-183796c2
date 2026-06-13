@@ -13,14 +13,15 @@ import json
 import asyncio
 import hashlib
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Annotated
 from concurrent.futures import ThreadPoolExecutor
+from urllib.parse import urlparse
 
 import httpx
 import redis.asyncio as redis
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, BackgroundTasks
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, BackgroundTasks, Header, Depends
 from pydantic import BaseModel, UUID4
 from dotenv import load_dotenv
 
@@ -66,8 +67,48 @@ class AIResultResponse(BaseModel):
     notes: str = ""
 
 
+async def verify_service_token(x_service_token: Annotated[str, Header()] = None):
+    """
+    Dependency to verify that the request comes from an internal service.
+    """
+    expected_token = os.getenv("INTERNAL_SERVICE_TOKEN")
+    if not expected_token:
+        # Log warning in production, but allow in dev if not set
+        return
+    
+    if x_service_token != expected_token:
+        raise HTTPException(status_code=401, detail="Invalid or missing internal service token")
+
+
+async def validate_image_url(url: str):
+    """
+    Validate that the image URL is safe to prevent SSRF.
+    Allow only http/https and specifically allow S3/MinIO endpoint.
+    """
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ('http', 'https'):
+            raise HTTPException(status_code=400, detail=f"Unsupported URL scheme: {parsed.scheme}")
+        
+        # Allowlist check: allow the configured S3 endpoint or localhost for dev
+        allowed_hosts = [
+            os.getenv("S3_ENDPOINT", "").replace("http://", "").replace("https://", "").split(":")[0],
+            "localhost",
+            "127.0.0.1"
+        ]
+        
+        if parsed.hostname not in allowed_hosts:
+            raise HTTPException(status_code=400, detail=f"Forbidden image host: {parsed.hostname}")
+            
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=400, detail=f"Invalid image URL: {str(e)}")
+
+
 async def download_image_from_url(image_url: str) -> bytes:
     """Download image from S3/MinIO or HTTP URL."""
+    await validate_image_url(image_url)
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.get(image_url)
         if response.status_code != 200:
@@ -97,7 +138,7 @@ async def health():
     }
 
 
-@app.post("/analyze", response_model=AIResultResponse)
+@app.post("/analyze", response_model=AIResultResponse, dependencies=[Depends(verify_service_token)])
 async def analyze_photo(request: AIResultRequest):
     """
     Analyze a single photo for construction stage classification and defect detection.
@@ -110,8 +151,6 @@ async def analyze_photo(request: AIResultRequest):
         result = await analyze_with_aggregator(image_bytes)
 
         if "error" in result and result["error"]:
-            # If no AI keys configured, fall back to simulated classification
-            # for development/demo purposes
             if not os.getenv("GOOGLE_VISION_API_KEY") and not os.getenv("ANTHROPIC_API_KEY"):
                 result = simulate_classification(image_bytes)
             else:
@@ -149,7 +188,6 @@ async def analyze_photo(request: AIResultRequest):
         cursor.close()
         conn.close()
 
-        # If defects detected, auto-create snag (as OPEN, requiring human review)
         defect_flags = result.get("defect_flags", [])
         if defect_flags and len(defect_flags) > 0:
             await create_snag_from_defects(str(request.photo_id), defect_flags)
@@ -171,7 +209,7 @@ async def analyze_photo(request: AIResultRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/batch-analyze")
+@app.post("/batch-analyze", dependencies=[Depends(verify_service_token)])
 async def batch_analyze(background_tasks: BackgroundTasks):
     """
     Queue all unprocessed photos for batch analysis.
@@ -207,7 +245,7 @@ async def batch_analyze(background_tasks: BackgroundTasks):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/results/{photo_id}")
+@app.get("/results/{photo_id}", dependencies=[Depends(verify_service_token)])
 async def get_results(photo_id: UUID4):
     """
     Retrieve AI results for a specific photo.
@@ -234,19 +272,16 @@ async def get_results(photo_id: UUID4):
 def simulate_classification(image_bytes: bytes) -> dict:
     """
     Fallback simulation for development when no AI keys are configured.
-    Returns realistic but clearly marked as simulated data.
     """
-    # Use hash to deterministically "classify" (for demo consistency)
     image_hash = hashlib.md5(image_bytes[:1024]).hexdigest()
     stages = ["foundations", "structure", "mep", "finishing"]
     stage_index = int(image_hash[:8], 16) % 4
     stage = stages[stage_index]
     confidence = 0.6 + (int(image_hash[8:12], 16) % 30) / 100.0
 
-    # Randomly detect defects for demo
     defect_categories = ["crack", "water_damage", "incomplete_work", "rust"]
     defects = []
-    if int(image_hash[12:16], 16) % 100 < 30:  # 30% chance of defects
+    if int(image_hash[12:16], 16) % 100 < 30:
         defect_count = 1 + (int(image_hash[16:20], 16) % 2)
         for i in range(defect_count):
             cat_index = (int(image_hash[20+i*4:24+i*4], 16) + i) % 4
@@ -255,7 +290,7 @@ def simulate_classification(image_bytes: bytes) -> dict:
                 "confidence": round(0.5 + (int(image_hash[24+i*4:28+i*4], 16) % 40) / 100.0, 4),
                 "description": f"Detected {defect_categories[cat_index]} during simulation",
                 "source": "simulated",
-                "note": "This is simulated data. No AI model was called. Configure GOOGLE_VISION_API_KEY or ANTHROPIC_API_KEY for real analysis.",
+                "note": "This is simulated data. No AI model was called.",
             })
 
     return {
@@ -263,7 +298,7 @@ def simulate_classification(image_bytes: bytes) -> dict:
         "confidence_score": round(confidence, 4),
         "defect_flags": defects,
         "extracted_text": "",
-        "notes": f"SIMULATED ANALYSIS. Deterministic classification based on image hash prefix. For real analysis, configure AI API keys.",
+        "notes": f"SIMULATED ANALYSIS. Deterministic classification based on image hash prefix.",
         "model": "simulated_dev",
     }
 
@@ -271,13 +306,11 @@ def simulate_classification(image_bytes: bytes) -> dict:
 async def create_snag_from_defects(photo_id: str, defects: List[dict]) -> None:
     """
     Auto-create snag entries for detected defects.
-    AI only creates OPEN snags — human must review and close.
     """
     try:
         conn = get_db()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
 
-        # Get photo and project info
         cursor.execute("""
             SELECT p.capture_point_id, cp.zone_id, z.project_id
             FROM photos p
@@ -290,7 +323,6 @@ async def create_snag_from_defects(photo_id: str, defects: List[dict]) -> None:
         if not photo_info:
             return
 
-        # Create snag for each defect (category)
         seen_categories = set()
         for defect in defects:
             category = defect.get("category", "unknown")
@@ -311,10 +343,9 @@ async def create_snag_from_defects(photo_id: str, defects: List[dict]) -> None:
                 photo_info["capture_point_id"],
                 category,
                 severity,
-                "open",  # AI never closes — human must review
-                f"AI detected {category} with confidence {confidence:.2f}. Source: {defect.get('source', 'unknown')}. "
-                f"{defect.get('description', '')}",
-                "ai_system",  # System user ID for AI-created snags
+                "open",
+                f"AI detected {category} with confidence {confidence:.2f}. Source: {defect.get('source', 'unknown')}. {defect.get('description', '')}",
+                "ai_system",
             ))
 
         conn.commit()
@@ -323,14 +354,11 @@ async def create_snag_from_defects(photo_id: str, defects: List[dict]) -> None:
 
     except Exception as e:
         print(f"Failed to create snag from defects: {e}")
-        # Don't fail the AI analysis if snag creation fails
 
 
-# Background worker to process AI queue
 async def ai_worker():
     """
     Continuously process photos from the Redis queue.
-    Uses concurrency semaphore for throughput.
     """
     while True:
         try:
@@ -345,15 +373,12 @@ async def ai_worker():
 
             print(f"Processing AI for photo {photo_id}")
 
-            # Run analysis
             request = AIResultRequest(photo_id=photo_id, image_url=image_url)
             try:
                 await analyze_photo(request)
                 print(f"✅ AI analysis completed for photo {photo_id}")
             except Exception as e:
                 print(f"❌ AI analysis failed for photo {photo_id}: {e}")
-                # Re-queue with retry count? (Could implement exponential backoff)
-                # For now, just log and continue
 
         except Exception as e:
             print(f"AI worker error: {e}")

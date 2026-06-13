@@ -35,12 +35,33 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
+/**
+ * Service-to-Service Auth Middleware
+ */
+const verifyServiceToken = (req: Request, res: Response, next: NextFunction) => {
+  const token = req.headers['x-service-token'];
+  const expectedToken = process.env.INTERNAL_SERVICE_TOKEN;
+
+  if (!expectedToken) {
+    return next();
+  }
+
+  if (token !== expectedToken) {
+    console.warn(`Unauthorized service access attempt from ${req.ip}`);
+    res.status(401).json({ error: 'Invalid or missing internal service token' });
+    return;
+  }
+  next();
+};
+
 app.get('/health', (_req, res) => {
+
   res.status(200).json({ status: 'ok', service: 'storage-service' });
 });
 
-app.post('/upload', upload.single('file'), async (req, res) => {
+app.post('/upload', verifyServiceToken, upload.single('file'), async (req, res) => {
   try {
+
     if (!req.file) {
       res.status(400).json({ error: 'No file provided' });
       return;
@@ -72,8 +93,9 @@ app.post('/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-app.get('/verify/:key', async (req, res) => {
+app.get('/verify/:key', verifyServiceToken, async (req, res) => {
   try {
+
     const { key } = req.params;
     const { data: expectedHash } = req.query;
 
@@ -116,8 +138,9 @@ app.get('/verify/:key', async (req, res) => {
   }
 });
 
-app.get('/download/:key', async (req, res) => {
+app.get('/download/:key', verifyServiceToken, async (req, res) => {
   try {
+
     const { key } = req.params;
     const obj = await s3.send(new GetObjectCommand({
       Bucket: BUCKET,

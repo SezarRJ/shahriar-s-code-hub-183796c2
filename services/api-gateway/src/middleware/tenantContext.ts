@@ -2,11 +2,27 @@ import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
 
 /**
+ * Attaches the internal service token to all outgoing requests to other services.
+ */
+export function internalServiceAuthMiddleware(
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): void {
+  const token = process.env.INTERNAL_SERVICE_TOKEN;
+  if (token) {
+    (req as any).internalServiceToken = token;
+  }
+  next();
+}
+
+/**
  * Injects tenant context into the database connection so Row-Level Security (RLS)
  * policies can filter data correctly. Sets PostgreSQL session variables for the
  * current tenant_id and user_role.
  */
 export function tenantContextMiddleware(
+
   req: Request,
   _res: Response,
   next: NextFunction

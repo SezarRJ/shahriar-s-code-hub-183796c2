@@ -34,7 +34,28 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
+/**
+ * Service-to-Service Auth Middleware
+ */
+const verifyServiceToken = (req: Request, res: Response, next: NextFunction) => {
+  const token = req.headers['x-service-token'];
+  const expectedToken = process.env.INTERNAL_SERVICE_TOKEN;
+
+  if (!expectedToken) {
+    // Allow in development if token is not configured
+    return next();
+  }
+
+  if (token !== expectedToken) {
+    logger.warn({ message: 'Unauthorized service access attempt', ip: req.ip });
+    res.status(401).json({ error: 'Invalid or missing internal service token' });
+    return;
+  }
+  next();
+};
+
 app.get('/health', (_req, res) => {
+
   res.status(200).json({ status: 'ok', service: 'notification-service' });
 });
 
@@ -46,8 +67,9 @@ overdueChecker.start();
  * POST /send
  * Send a notification via multiple channels.
  */
-app.post('/send', async (req, res) => {
+app.post('/send', verifyServiceToken, async (req, res) => {
   try {
+
     const { user_id, type, channels, payload, project_id } = req.body;
 
     if (!user_id || !type || !channels || !payload) {

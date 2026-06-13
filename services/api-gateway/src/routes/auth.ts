@@ -18,7 +18,6 @@ const signupSchema = z.object({
   password: z.string().min(8),
   name: z.string().min(2),
   tenant_id: z.string().uuid().optional(),
-  role: z.enum(['tenant_admin', 'project_manager', 'site_supervisor', 'field_operator', 'read_only']).optional(),
 });
 
 router.post('/login', async (req: Request, res: Response) => {
@@ -71,7 +70,7 @@ router.post('/signup', async (req: Request, res: Response) => {
         auth_id: authData.user.id,
         email: parsed.email,
         name: parsed.name,
-        role: parsed.role || 'field_operator',
+        role: 'field_operator', // Hardcoded default role to prevent escalation
         tenant_id: parsed.tenant_id,
       });
 
