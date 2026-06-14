@@ -19,17 +19,18 @@ services:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        fromEnv: DATABASE_URL
+        value: ${DATABASE_URL}
       - key: REDIS_URL
         fromService:
+          type: redis
           name: shahid-redis
           property: connectionString
       - key: GOOGLE_VISION_API_KEY
-        fromEnv: GOOGLE_VISION_API_KEY
+        value: ${GOOGLE_VISION_API_KEY}
       - key: ANTHROPIC_API_KEY
-        fromEnv: ANTHROPIC_API_KEY
+        value: ${ANTHROPIC_API_KEY}
       - key: INTERNAL_SERVICE_TOKEN
-        fromEnv: INTERNAL_SERVICE_TOKEN
+        value: ${INTERNAL_SERVICE_TOKEN}
 
   # --- Object Storage Service ---
   - type: web
@@ -40,15 +41,15 @@ services:
     dockerfilePath: services/storage-service/Dockerfile
     envVars:
       - key: S3_ENDPOINT
-        fromEnv: S3_ENDPOINT
+        value: ${S3_ENDPOINT}
       - key: S3_ACCESS_KEY
-        fromEnv: S3_ACCESS_KEY
+        value: ${S3_ACCESS_KEY}
       - key: S3_SECRET_KEY
-        fromEnv: S3_SECRET_KEY
+        value: ${S3_SECRET_KEY}
       - key: S3_BUCKET
-        fromEnv: S3_BUCKET
+        value: ${S3_BUCKET}
       - key: INTERNAL_SERVICE_TOKEN
-        fromEnv: INTERNAL_SERVICE_TOKEN
+        value: ${INTERNAL_SERVICE_TOKEN}
 
   # --- Notification Service ---
   - type: web
@@ -59,17 +60,18 @@ services:
     dockerfilePath: services/notification-service/Dockerfile
     envVars:
       - key: DATABASE_URL
-        fromEnv: DATABASE_URL
+        value: ${DATABASE_URL}
       - key: REDIS_URL
         fromService:
+          type: redis
           name: shahid-redis
           property: connectionString
       - key: INTERNAL_SERVICE_TOKEN
-        fromEnv: INTERNAL_SERVICE_TOKEN
+        value: ${INTERNAL_SERVICE_TOKEN}
       - key: SMTP_HOST
-        fromEnv: SMTP_HOST
+        value: ${SMTP_HOST}
       - key: SMTP_PORT
-        fromEnv: SMTP_PORT
+        value: ${SMTP_PORT}
 
   # --- Report Generation Service ---
   - type: web
@@ -80,13 +82,14 @@ services:
     dockerfilePath: services/report-service/Dockerfile
     envVars:
       - key: DATABASE_URL
-        fromEnv: DATABASE_URL
+        value: ${DATABASE_URL}
       - key: REDIS_URL
         fromService:
+          type: redis
           name: shahid-redis
           property: connectionString
       - key: INTERNAL_SERVICE_TOKEN
-        fromEnv: INTERNAL_SERVICE_TOKEN
+        value: ${INTERNAL_SERVICE_TOKEN}
 
   # --- API Gateway ---
   - type: web
@@ -99,30 +102,35 @@ services:
       - key: NODE_ENV
         value: production
       - key: SUPABASE_URL
-        fromEnv: SUPABASE_URL
+        value: ${SUPABASE_URL}
       - key: SUPABASE_SERVICE_KEY
-        fromEnv: SUPABASE_SERVICE_KEY
+        value: ${SUPABASE_SERVICE_KEY}
       - key: DATABASE_URL
-        fromEnv: DATABASE_URL
+        value: ${DATABASE_URL}
       - key: INTERNAL_SERVICE_TOKEN
-        fromEnv: INTERNAL_SERVICE_TOKEN
+        value: ${INTERNAL_SERVICE_TOKEN}
       - key: REDIS_URL
         fromService:
+          type: redis
           name: shahid-redis
           property: connectionString
       - key: AI_SERVICE_URL
         fromService:
+          type: web
           name: shahid-ai-service
           property: host
       - key: STORAGE_SERVICE_URL
         fromService:
+          type: web
           name: shahid-storage-service
           property: host
       - key: NOTIFICATION_SERVICE_URL
         fromService:
+          type: web
           name: shahid-notification-service
           property: host
       - key: REPORT_SERVICE_URL
         fromService:
+          type: web
           name: shahid-report-service
           property: host
