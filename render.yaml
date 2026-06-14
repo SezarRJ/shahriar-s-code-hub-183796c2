@@ -1,4 +1,12 @@
 services:
+  # --- Redis Instance (Required by multiple services) ---
+  redis:
+    type: redis
+    name: shahid-redis
+    plan: free
+    region: oregon
+
+  # --- API Gateway (The main entry point) ---
   api-gateway:
     type: web-service
     name: shahid-api-gateway
@@ -18,8 +26,17 @@ services:
       - key: INTERNAL_SERVICE_TOKEN
         fromEnv: INTERNAL_SERVICE_TOKEN
       - key: REDIS_URL
-        fromEnv: REDIS_URL
+        fromService: redis
+      - key: AI_SERVICE_URL
+        fromService: ai-service
+      - key: STORAGE_SERVICE_URL
+        fromService: storage-service
+      - key: NOTIFICATION_SERVICE_URL
+        fromService: notification-service
+      - key: REPORT_SERVICE_URL
+        fromService: report-service
 
+  # --- AI Analysis Service ---
   ai-service:
     type: web-service
     name: shahid-ai-service
@@ -33,7 +50,7 @@ services:
       - key: DATABASE_URL
         fromEnv: DATABASE_URL
       - key: REDIS_URL
-        fromEnv: REDIS_URL
+        fromService: redis
       - key: GOOGLE_VISION_API_KEY
         fromEnv: GOOGLE_VISION_API_KEY
       - key: ANTHROPIC_API_KEY
@@ -41,6 +58,7 @@ services:
       - key: INTERNAL_SERVICE_TOKEN
         fromEnv: INTERNAL_SERVICE_TOKEN
 
+  # --- Object Storage Service ---
   storage-service:
     type: web-service
     name: shahid-storage-service
@@ -60,6 +78,7 @@ services:
       - key: INTERNAL_SERVICE_TOKEN
         fromEnv: INTERNAL_SERVICE_TOKEN
 
+  # --- Notification Service ---
   notification-service:
     type: web-service
     name: shahid-notification-service
@@ -71,7 +90,7 @@ services:
       - key: DATABASE_URL
         fromEnv: DATABASE_URL
       - key: REDIS_URL
-        fromEnv: REDIS_URL
+        fromService: redis
       - key: INTERNAL_SERVICE_TOKEN
         fromEnv: INTERNAL_SERVICE_TOKEN
       - key: SMTP_HOST
@@ -79,6 +98,7 @@ services:
       - key: SMTP_PORT
         fromEnv: SMTP_PORT
 
+  # --- Report Generation Service ---
   report-service:
     type: web-service
     name: shahid-report-service
@@ -90,6 +110,6 @@ services:
       - key: DATABASE_URL
         fromEnv: DATABASE_URL
       - key: REDIS_URL
-        fromEnv: REDIS_URL
+        fromService: redis
       - key: INTERNAL_SERVICE_TOKEN
         fromEnv: INTERNAL_SERVICE_TOKEN
