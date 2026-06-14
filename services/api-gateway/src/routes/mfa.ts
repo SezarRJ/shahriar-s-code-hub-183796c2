@@ -31,8 +31,10 @@ router.post('/enable', async (req: Request, res: Response) => {
     const recoveryCode = require('crypto').randomBytes(16).toString('hex').toUpperCase();
     logger.info({ message: 'MFA enabled', userId: targetUserId, role: user.role, enabledBy: context.user_id });
 
+    // Do NOT return the raw TOTP secret — the QR code URI is sufficient for enrollment.
+    void secret;
     res.status(200).json({
-      data: { user_id: targetUserId, mfa_enabled: true, qr_code_uri: qrCodeURI, recovery_code: recoveryCode, secret: secret, instructions: 'Scan the QR code with Google Authenticator, Authy, or Microsoft Authenticator. Save the recovery code in a secure location.' },
+      data: { user_id: targetUserId, mfa_enabled: true, qr_code_uri: qrCodeURI, recovery_code: recoveryCode, instructions: 'Scan the QR code with Google Authenticator, Authy, or Microsoft Authenticator. Save the recovery code in a secure location.' },
     });
   } catch (err) {
     logger.error({ message: 'Enable MFA error', error: (err as Error).message, correlationId: req.correlationId });
@@ -42,7 +44,14 @@ router.post('/enable', async (req: Request, res: Response) => {
 
 router.post('/verify', async (req: Request, res: Response) => {
   try {
+    const context = (req as any).tenantContext;
     const parsed = verifyMFARequest.parse(req.body);
+    const isAdmin = context?.role === 'super_admin' || context?.role === 'tenant_admin';
+    if (parsed.user_id !== context?.user_id && !isAdmin) {
+      logger.warn({ message: 'Cross-user MFA verify attempt blocked', actor: context?.user_id, target: parsed.user_id, correlationId: req.correlationId });
+      res.status(403).json({ error: 'Cannot verify MFA code for another user' });
+      return;
+    }
     const isValid = await verifyMFAForUser(parsed.user_id, parsed.code);
     if (!isValid) { res.status(401).json({ error: 'Invalid TOTP code. Please check your authenticator app and try again.' }); return; }
     res.status(200).json({ data: { verified: true, user_id: parsed.user_id, timestamp: new Date().toISOString() } });
