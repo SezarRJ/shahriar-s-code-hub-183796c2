@@ -1,4 +1,8 @@
 {
+  "scripts": {
+    "build:dev": "echo 'No app build configured at repo root.'",
+    "build": "echo 'No app build configured at repo root.'"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.1",
     "dotenv": "^17.4.2",
