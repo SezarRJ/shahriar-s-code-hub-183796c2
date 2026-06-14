@@ -162,8 +162,8 @@ async def analyze_photo(request: AIResultRequest):
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute(
             """
-            INSERT INTO ai_results (photo_id, stage_classification, confidence_score, defect_flags, model_version, extracted_text, notes)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO ai_results (photo_id, stage_classification, confidence_score, defect_flags, model_version, extracted_text, notes, verification_status)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, 'pending')
             ON CONFLICT (photo_id) DO UPDATE SET
                 stage_classification = EXCLUDED.stage_classification,
                 confidence_score = EXCLUDED.confidence_score,
@@ -171,7 +171,8 @@ async def analyze_photo(request: AIResultRequest):
                 model_version = EXCLUDED.model_version,
                 extracted_text = EXCLUDED.extracted_text,
                 notes = EXCLUDED.notes,
-                reprocessed_at = NOW()
+                reprocessed_at = NOW(),
+                verification_status = 'pending'
             RETURNING *
             """,
             (

@@ -1,4 +1,4 @@
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import {
   Box,
@@ -42,7 +42,7 @@ const menuItems = [
   { path: '/settings', label: 'الإعدادات', icon: <Settings /> },
 ];
 
-export default function Layout() {
+export default function Layout({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
@@ -69,7 +69,7 @@ export default function Layout() {
             <ListItemButton
               selected={location.pathname === item.path}
               onClick={() => {
-                navigate(item.path);
+                navigate({ to: item.path });
                 setMobileOpen(false);
               }}
               sx={{
@@ -94,7 +94,10 @@ export default function Layout() {
       <List>
         <ListItem disablePadding>
           <ListItemButton
-            onClick={() => logout()}
+            onClick={() => {
+              logout();
+              navigate({ to: '/login' });
+            }}
             sx={{ borderRadius: 2, mx: 1, color: 'error.main' }}
           >
             <ListItemIcon sx={{ minWidth: 40, color: 'error.main' }}>
@@ -186,7 +189,7 @@ export default function Layout() {
         }}
       >
         <Toolbar />
-        <Outlet />
+        {children}
       </Box>
     </Box>
   );

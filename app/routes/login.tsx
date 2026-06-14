@@ -1,6 +1,5 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Paper,
@@ -46,7 +45,7 @@ function LoginPage() {
       const response = await loginUser(email, password);
       const { token, user } = response.data;
       setAuth(token, user);
-      navigate('/');
+      navigate({ to: '/' });
     } catch (err: any) {
       setError(err.response?.data?.error || 'Login failed');
     } finally {

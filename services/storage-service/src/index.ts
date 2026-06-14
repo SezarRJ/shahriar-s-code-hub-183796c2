@@ -67,8 +67,21 @@ app.post('/upload', verifyServiceToken, upload.single('file'), async (req, res) 
       return;
     }
 
+    // GAP FIX: Client-Side Hash Verification (Integrity Gap)
+    // We expect the client (Mobile App) to send the hash they computed at the moment of capture.
+    const clientHash = req.body.client_sha256;
+    const serverHash = crypto.createHash('sha256').update(req.file.buffer).digest('hex');
+
+    if (clientHash && clientHash !== serverHash) {
+      console.warn(`Integrity Mismatch: Client hash ${clientHash} != Server hash ${serverHash}`);
+      res.status(422).json({ 
+        error: 'Integrity check failed', 
+        message: 'The file hash does not match the capture-time hash. Possible tampering detected.' 
+      });
+      return;
+    }
+
     const key = req.body.key || `${Date.now()}-${req.file.originalname}`;
-    const hash = crypto.createHash('sha256').update(req.file.buffer).digest('hex');
 
     await s3.send(new PutObjectCommand({
       Bucket: BUCKET,
@@ -76,16 +89,18 @@ app.post('/upload', verifyServiceToken, upload.single('file'), async (req, res) 
       Body: req.file.buffer,
       ContentType: req.file.mimetype,
       Metadata: {
-        'sha256': hash,
+        'sha256': serverHash,
         'uploaded-at': new Date().toISOString(),
+        'client-verified': clientHash ? 'true' : 'false',
       },
     }));
 
     res.status(200).json({
       key,
       bucket: BUCKET,
-      hash_sha256: hash,
+      hash_sha256: serverHash,
       size: req.file.size,
+      integrity_verified: !!clientHash,
     });
   } catch (err) {
     console.error('Upload error', err);

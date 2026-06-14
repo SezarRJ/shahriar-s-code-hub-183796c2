@@ -2,9 +2,12 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { getSupabaseClient } from '../utils/supabase';
 import { logger } from '../utils/logger';
+import healthRouter from './health';
 
 const router = Router();
 
+// Health check route
+router.use('/health', healthRouter);
 
 const supabaseUrl = process.env.SUPABASE_URL || 'http://localhost:9999';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';

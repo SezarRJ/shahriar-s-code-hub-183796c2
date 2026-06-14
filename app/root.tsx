@@ -5,6 +5,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import Layout from '../apps/web/src/components/Layout';
 
 // Import i18n configuration
 import '../apps/web/src/i18n';
@@ -59,7 +60,9 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <Outlet />
+        <Layout>
+          <Outlet />
+        </Layout>
         <ScrollRestoration />
       </ThemeProvider>
     </QueryClientProvider>
