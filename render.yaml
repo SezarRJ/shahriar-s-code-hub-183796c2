@@ -6,9 +6,9 @@ services:
     region: oregon
 
   # --- API Gateway ---
-  - type: web-service
+  - type: web
     name: shahid-api-gateway
-    env: docker
+    runtime: docker
     plan: free
     region: oregon
     dockerfilePath: services/api-gateway/Dockerfile
@@ -35,9 +35,9 @@ services:
         fromService: shahid-report-service
 
   # --- AI Analysis Service ---
-  - type: web-service
+  - type: web
     name: shahid-ai-service
-    env: docker
+    runtime: docker
     plan: free
     region: oregon
     dockerfilePath: services/ai-service/Dockerfile
@@ -56,9 +56,9 @@ services:
         fromEnv: INTERNAL_SERVICE_TOKEN
 
   # --- Object Storage Service ---
-  - type: web-service
+  - type: web
     name: shahid-storage-service
-    env: docker
+    runtime: docker
     plan: free
     region: oregon
     dockerfilePath: services/storage-service/Dockerfile
@@ -75,9 +75,9 @@ services:
         fromEnv: INTERNAL_SERVICE_TOKEN
 
   # --- Notification Service ---
-  - type: web-service
+  - type: web
     name: shahid-notification-service
-    env: docker
+    runtime: docker
     plan: free
     region: oregon
     dockerfilePath: services/notification-service/Dockerfile
@@ -94,9 +94,9 @@ services:
         fromEnv: SMTP_PORT
 
   # --- Report Generation Service ---
-  - type: web-service
+  - type: web
     name: shahid-report-service
-    env: docker
+    runtime: docker
     plan: free
     region: oregon
     dockerfilePath: services/report-service/Dockerfile
