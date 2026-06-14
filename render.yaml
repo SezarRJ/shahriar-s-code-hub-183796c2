@@ -4,35 +4,9 @@ services:
     name: shahid-redis
     plan: free
     region: oregon
-
-  # --- API Gateway ---
-  - type: web
-    name: shahid-api-gateway
-    runtime: docker
-    plan: free
-    region: oregon
-    dockerfilePath: services/api-gateway/Dockerfile
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: SUPABASE_URL
-        fromEnv: SUPABASE_URL
-      - key: SUPABASE_SERVICE_KEY
-        fromEnv: SUPABASE_SERVICE_KEY
-      - key: DATABASE_URL
-        fromEnv: DATABASE_URL
-      - key: INTERNAL_SERVICE_TOKEN
-        fromEnv: INTERNAL_SERVICE_TOKEN
-      - key: REDIS_URL
-        fromService: shahid-redis
-      - key: AI_SERVICE_URL
-        fromService: shahid-ai-service
-      - key: STORAGE_SERVICE_URL
-        fromService: shahid-storage-service
-      - key: NOTIFICATION_SERVICE_URL
-        fromService: shahid-notification-service
-      - key: REPORT_SERVICE_URL
-        fromService: shahid-report-service
+    ipAllowList:
+      - source: 0.0.0.0/0
+        description: allow all for internal connectivity
 
   # --- AI Analysis Service ---
   - type: web
@@ -107,3 +81,32 @@ services:
         fromService: shahid-redis
       - key: INTERNAL_SERVICE_TOKEN
         fromEnv: INTERNAL_SERVICE_TOKEN
+
+  # --- API Gateway ---
+  - type: web
+    name: shahid-api-gateway
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: services/api-gateway/Dockerfile
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SUPABASE_URL
+        fromEnv: SUPABASE_URL
+      - key: SUPABASE_SERVICE_KEY
+        fromEnv: SUPABASE_SERVICE_KEY
+      - key: DATABASE_URL
+        fromEnv: DATABASE_URL
+      - key: INTERNAL_SERVICE_TOKEN
+        fromEnv: INTERNAL_SERVICE_TOKEN
+      - key: REDIS_URL
+        fromService: shahid-redis
+      - key: AI_SERVICE_URL
+        fromService: shahid-ai-service
+      - key: STORAGE_SERVICE_URL
+        fromService: shahid-storage-service
+      - key: NOTIFICATION_SERVICE_URL
+        fromService: shahid-notification-service
+      - key: REPORT_SERVICE_URL
+        fromService: shahid-report-service
