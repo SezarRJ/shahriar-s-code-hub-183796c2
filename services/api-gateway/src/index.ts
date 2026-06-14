@@ -19,6 +19,7 @@ import { authMiddleware } from './middleware/auth';
 import { tenantContextMiddleware } from './middleware/tenantContext';
 import { standardRateLimit, uploadRateLimit, authRateLimit } from './middleware/rateLimit';
 import { logger } from './utils/logger';
+import { swaggerUiMiddleware, swaggerUiSetup } from './utils/swagger';
 
 import authRoutes from './routes/auth';
 import projectRoutes from './routes/projects';
@@ -57,6 +58,9 @@ app.use(correlationMiddleware);
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok', service: 'shahid-api-gateway', version: '1.0.0' });
 });
+
+// API Documentation
+app.use('/docs', swaggerUiMiddleware, swaggerUiSetup);
 
 // Public routes (no auth) — use auth rate limiter (stricter for login brute force)
 app.use('/api/v1/auth', authRateLimit, authRoutes);

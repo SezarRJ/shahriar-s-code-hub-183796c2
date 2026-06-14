@@ -1,8 +1,3 @@
-/**
- * SHAHID Report Service
- * Generates weekly PDF reports and handles schedule comparison logic.
- */
-
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -13,6 +8,9 @@ import { logger } from './utils/logger';
 import { generateWeeklyReport } from './generator/pdfGenerator';
 import { WeeklyReportCron } from './jobs/weeklyReportCron';
 import crypto from 'crypto';
+import { Request, Response, NextFunction } from 'express';
+import fs from 'fs';
+import path from 'path';
 
 dotenv.config();
 
@@ -46,7 +44,6 @@ const verifyServiceToken = (req: Request, res: Response, next: NextFunction) => 
 };
 
 app.get('/health', (_req, res) => {
-
   res.status(200).json({ status: 'ok', service: 'report-service' });
 });
 
@@ -56,7 +53,6 @@ app.get('/health', (_req, res) => {
  */
 app.post('/generate', verifyServiceToken, async (req, res) => {
   try {
-
     const { project_id, period_start, period_end, triggered_by = 'manual' } = req.body;
 
     if (!project_id) {
@@ -75,11 +71,58 @@ app.post('/generate', verifyServiceToken, async (req, res) => {
     }));
 
     logger.info({ message: 'Report queued', jobId, project_id, triggered_by });
-
     res.status(202).json({ jobId, status: 'queued' });
   } catch (err) {
     logger.error({ message: 'Queue report error', error: (err as Error).message });
     res.status(500).json({ error: 'Failed to queue report' });
+  }
+});
+
+/**
+ * GET /export-csv/:project_id
+ * GAP FIX: WEB-02 - Export report data as CSV
+ */
+app.get('/export-csv/:project_id', verifyServiceToken, async (req, res) => {
+  try {
+    const { project_id } = req.params;
+
+    const result = await pool.query(
+      `SELECT cp.name as point_name, z.name as zone_name, cp.expected_stage,
+              MAX(p.captured_at) as last_captured_at,
+              COUNT(p.id) as photo_count
+       FROM capture_points cp
+       JOIN zones z ON z.id = cp.zone_id
+       LEFT JOIN photos p ON p.capture_point_id = cp.id
+       WHERE z.project_id = $1
+       GROUP BY cp.id, cp.name, z.name, cp.expected_stage
+       ORDER BY cp.name`,
+      [project_id]
+    );
+
+    if (result.rows.length === 0) {
+      res.status(404).json({ error: 'No data found for this project' });
+      return;
+    }
+
+    // Generate CSV string
+    const headers = ['Point Name', 'Zone', 'Expected Stage', 'Last Captured', 'Photo Count'];
+    const rows = result.rows.map(row => [
+      `"${row.point_name}"`,
+      `"${row.zone_name}"`,
+      `"${row.expected_stage || ''}"`,
+      `"${row.last_captured_at || ''}"`,
+      row.photo_count
+    ].join(','));
+
+    const csvContent = [headers.join(','), ...rows].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=shahid-report-${project_id}.csv`);
+    res.status(200).send(csvContent);
+
+  } catch (err) {
+    logger.error({ message: 'CSV export error', error: (err as Error).message });
+    res.status(500).json({ error: 'Failed to export CSV' });
   }
 });
 
@@ -89,7 +132,6 @@ app.post('/generate', verifyServiceToken, async (req, res) => {
  */
 app.get('/schedule-status/:project_id', verifyServiceToken, async (req, res) => {
   try {
-
     const { project_id } = req.params;
 
     const result = await pool.query(
@@ -135,12 +177,10 @@ app.listen(PORT, () => {
   logger.info(`Report Service running on port ${PORT}`);
 });
 
-// Start weekly report cron job (AC-04: auto-generate every Monday 08:00)
 const reportCron = new WeeklyReportCron(pool, redis);
 reportCron.start();
 logger.info('Weekly report cron job started');
 
-// Worker: process report queue
 async function processReportQueue() {
   while (true) {
     try {
@@ -150,14 +190,12 @@ async function processReportQueue() {
       const job = JSON.parse(jobData[1]);
       logger.info({ message: 'Processing report job', jobId: job.jobId, projectId: job.project_id });
 
-      // 1. Fetch project data
       const projectResult = await pool.query(
         'SELECT name, address FROM projects WHERE id = $1',
         [job.project_id]
       );
       const project = projectResult.rows[0];
 
-      // 2. Fetch capture points and photos for the period
       const pointsResult = await pool.query(
         `SELECT cp.id, cp.name, z.name as zone, cp.expected_stage,
                 COUNT(p.id) as photo_count, MAX(p.captured_at) as last_capture,
@@ -191,10 +229,8 @@ async function processReportQueue() {
         ? Math.round(capturePoints.reduce((sum: number, p: any) => sum + parseInt(p.photo_count), 0) / totalPoints)
         : 0;
 
-      // 3. Generate report hash (integrity)
       const reportHash = crypto.randomBytes(16).toString('hex');
 
-      // 4. Prepare report data for PDF
       const reportData = {
         project_id: job.project_id,
         project_name: project?.name || 'Unknown Project',
@@ -225,13 +261,11 @@ async function processReportQueue() {
           status_class: p.photo_count > 0 ? 'status-on-time' : 'status-overdue',
           status_label: p.photo_count > 0 ? 'مكتمل' : 'معلّق',
         })),
-        photos: [], // Can be populated with photo evidence if needed
+        photos: [],
       };
 
-      // 5. Generate PDF
       const { fileUrl, fileSize } = await generateWeeklyReport(reportData);
 
-      // 6. Insert report record into database
       await pool.query(
         `INSERT INTO reports (project_id, period_start, period_end, file_url, file_size_bytes, generated_by, triggered_by, report_data)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,

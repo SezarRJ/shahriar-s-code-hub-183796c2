@@ -26,8 +26,10 @@ from pydantic import BaseModel, UUID4
 from dotenv import load_dotenv
 
 from vision_client import AIAggregator, VisionClient, GoogleVisionClient, ClaudeVisionClient
+from src.feedback import verify_ai_result # Incorrect import, should be from feedback if it's a separate file or integrated
 
 load_dotenv()
+
 
 app = FastAPI(title="SHAHID AI Service", version="1.1.0")
 
