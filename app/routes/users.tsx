@@ -30,8 +30,8 @@ import {
   Alert,
 } from '@mui/material';
 import { Add, Edit, Delete } from '@mui/icons-material';
-import { fetchUsers, createUser } from '../apps/web/src/services/api';
-import { useAuthStore } from '../apps/web/src/store/authStore';
+import { fetchUsers, createUser } from '../src/services/api';
+import { useAuthStore } from '../src/store/authStore';
 
 export const Route = createFileRoute('/users')({
   beforeLoad: ({ location }) => {

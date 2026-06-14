@@ -27,8 +27,8 @@ import {
   ArrowForward,
 } from '@mui/icons-material';
 import { useQuery } from 'react-query';
-import { fetchProjects, fetchReports, fetchNotifications, api } from '../apps/web/src/services/api';
-import { useAuthStore } from '../apps/web/src/store/authStore';
+import { fetchProjects, fetchReports, fetchNotifications, api } from '../src/services/api';
+import { useAuthStore } from '../src/store/authStore';
 
 export const Route = createFileRoute('/')({
   beforeLoad: ({ location }) => {

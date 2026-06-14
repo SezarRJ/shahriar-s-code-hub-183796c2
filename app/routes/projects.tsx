@@ -38,8 +38,8 @@ import {
   Apartment,
   UploadFile,
 } from '@mui/icons-material';
-import { fetchProjects, createProject } from '../apps/web/src/services/api';
-import { useAuthStore } from '../apps/web/src/store/authStore';
+import { fetchProjects, createProject } from '../src/services/api';
+import { useAuthStore } from '../src/store/authStore';
 
 export const Route = createFileRoute('/projects')({
   beforeLoad: ({ location }) => {

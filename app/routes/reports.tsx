@@ -33,8 +33,8 @@ import {
   Download,
   ArrowForward,
 } from '@mui/icons-material';
-import { fetchReports, triggerReport, fetchProjects } from '../apps/web/src/services/api';
-import { useAuthStore } from '../apps/web/src/store/authStore';
+import { fetchReports, triggerReport, fetchProjects } from '../src/services/api';
+import { useAuthStore } from '../src/store/authStore';
 
 export const Route = createFileRoute('/reports')({
   beforeLoad: ({ location }) => {

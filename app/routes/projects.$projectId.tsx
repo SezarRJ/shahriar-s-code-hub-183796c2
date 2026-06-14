@@ -24,8 +24,8 @@ import {
   Alert,
 } from '@mui/material';
 import { ArrowBack } from '@mui/icons-material';
-import { fetchProject } from '../apps/web/src/services/api';
-import { useAuthStore } from '../apps/web/src/store/authStore';
+import { fetchProject } from '../src/services/api';
+import { useAuthStore } from '../src/store/authStore';
 
 export const Route = createFileRoute('/projects/$projectId')({
   beforeLoad: ({ location }) => {
