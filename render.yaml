@@ -1,14 +1,12 @@
 services:
-  # --- Redis Instance (Required by multiple services) ---
-  redis:
-    type: redis
+  # --- Redis Instance ---
+  - type: redis
     name: shahid-redis
     plan: free
     region: oregon
 
-  # --- API Gateway (The main entry point) ---
-  api-gateway:
-    type: web-service
+  # --- API Gateway ---
+  - type: web-service
     name: shahid-api-gateway
     env: docker
     plan: free
@@ -26,19 +24,18 @@ services:
       - key: INTERNAL_SERVICE_TOKEN
         fromEnv: INTERNAL_SERVICE_TOKEN
       - key: REDIS_URL
-        fromService: redis
+        fromService: shahid-redis
       - key: AI_SERVICE_URL
-        fromService: ai-service
+        fromService: shahid-ai-service
       - key: STORAGE_SERVICE_URL
-        fromService: storage-service
+        fromService: shahid-storage-service
       - key: NOTIFICATION_SERVICE_URL
-        fromService: notification-service
+        fromService: shahid-notification-service
       - key: REPORT_SERVICE_URL
-        fromService: report-service
+        fromService: shahid-report-service
 
   # --- AI Analysis Service ---
-  ai-service:
-    type: web-service
+  - type: web-service
     name: shahid-ai-service
     env: docker
     plan: free
@@ -50,7 +47,7 @@ services:
       - key: DATABASE_URL
         fromEnv: DATABASE_URL
       - key: REDIS_URL
-        fromService: redis
+        fromService: shahid-redis
       - key: GOOGLE_VISION_API_KEY
         fromEnv: GOOGLE_VISION_API_KEY
       - key: ANTHROPIC_API_KEY
@@ -59,8 +56,7 @@ services:
         fromEnv: INTERNAL_SERVICE_TOKEN
 
   # --- Object Storage Service ---
-  storage-service:
-    type: web-service
+  - type: web-service
     name: shahid-storage-service
     env: docker
     plan: free
@@ -79,8 +75,7 @@ services:
         fromEnv: INTERNAL_SERVICE_TOKEN
 
   # --- Notification Service ---
-  notification-service:
-    type: web-service
+  - type: web-service
     name: shahid-notification-service
     env: docker
     plan: free
@@ -90,7 +85,7 @@ services:
       - key: DATABASE_URL
         fromEnv: DATABASE_URL
       - key: REDIS_URL
-        fromService: redis
+        fromService: shahid-redis
       - key: INTERNAL_SERVICE_TOKEN
         fromEnv: INTERNAL_SERVICE_TOKEN
       - key: SMTP_HOST
@@ -99,8 +94,7 @@ services:
         fromEnv: SMTP_PORT
 
   # --- Report Generation Service ---
-  report-service:
-    type: web-service
+  - type: web-service
     name: shahid-report-service
     env: docker
     plan: free
@@ -110,6 +104,6 @@ services:
       - key: DATABASE_URL
         fromEnv: DATABASE_URL
       - key: REDIS_URL
-        fromService: redis
+        fromService: shahid-redis
       - key: INTERNAL_SERVICE_TOKEN
         fromEnv: INTERNAL_SERVICE_TOKEN
