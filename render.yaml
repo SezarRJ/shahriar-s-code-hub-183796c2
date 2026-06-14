@@ -15,6 +15,7 @@ services:
     plan: free
     region: oregon
     dockerfilePath: services/ai-service/Dockerfile
+    healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
@@ -39,6 +40,7 @@ services:
     plan: free
     region: oregon
     dockerfilePath: services/storage-service/Dockerfile
+    healthCheckPath: /health
     envVars:
       - key: S3_ENDPOINT
         value: ${S3_ENDPOINT}
@@ -58,6 +60,7 @@ services:
     plan: free
     region: oregon
     dockerfilePath: services/notification-service/Dockerfile
+    healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
         value: ${DATABASE_URL}
@@ -80,6 +83,7 @@ services:
     plan: free
     region: oregon
     dockerfilePath: services/report-service/Dockerfile
+    healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
         value: ${DATABASE_URL}
@@ -98,6 +102,7 @@ services:
     plan: free
     region: oregon
     dockerfilePath: services/api-gateway/Dockerfile
+    healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
