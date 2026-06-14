@@ -106,9 +106,18 @@ function DashboardPage() {
 
   return (
     <Box>
-      <Typography variant="h4" component="h1" fontWeight="bold" gutterBottom>
-        {t('dashboard')}
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4" component="h1" fontWeight="bold">
+          {t('dashboard')}
+        </Typography>
+        <Chip 
+          label="GitHub Synced ✅" 
+          color="success" 
+          variant="outlined" 
+          size="small" 
+          sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}
+        />
+      </Box>
 
       {kpiLoading && (
         <Box sx={{ mb: 2 }}>
