@@ -1,7 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from 'react-query';
+import { useQuery, useMutation } from 'react-query';
 import {
   Box,
   Typography,
@@ -26,23 +26,37 @@ import {
   Select,
   MenuItem,
   CircularProgress,
+  Alert,
 } from '@mui/material';
 import {
   Assessment,
-  Refresh,
   Download,
   ArrowForward,
 } from '@mui/icons-material';
-import { fetchReports, triggerReport } from '../apps/web/src/services/api';
+import { fetchReports, triggerReport, fetchProjects } from '../apps/web/src/services/api';
+import { useAuthStore } from '../apps/web/src/store/authStore';
 
 export const Route = createFileRoute('/reports')({
+  beforeLoad: ({ location }) => {
+    if (!useAuthStore.getState().isAuthenticated) {
+      throw redirect({
+        to: '/login',
+        search: {
+          redirect: location.href,
+        },
+      });
+    }
+  },
   component: ReportsPage,
 });
 
 function ReportsPage() {
   const { t } = useTranslation();
-  const { data, isLoading, refetch } = useQuery('reports', fetchReports);
-  const reports = data?.data?.data || [];
+  const { data: reportsData, isLoading: reportsLoading, isError: reportsError, refetch } = useQuery('reports', fetchReports);
+  const { data: projectsData } = useQuery('projects', fetchProjects);
+  
+  const reports = reportsData?.data?.data || [];
+  const projects = projectsData?.data?.data || [];
 
   useEffect(() => {
     document.title = `${t('appName')} — ${t('reports')}`;
@@ -53,21 +67,17 @@ function ReportsPage() {
   }, [t]);
 
   const [openDialog, setOpenDialog] = useState(false);
-
   const [selectedProject, setSelectedProject] = useState('');
-  const [generating, setGenerating] = useState(false);
-
-  const handleGenerate = async () => {
-    setGenerating(true);
-    try {
-      await triggerReport({ project_id: selectedProject });
+  
+  const mutation = useMutation(triggerReport, {
+    onSuccess: () => {
       setOpenDialog(false);
       refetch();
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setGenerating(false);
-    }
+    },
+  });
+
+  const handleGenerate = async () => {
+    mutation.mutate({ project_id: selectedProject });
   };
 
   return (
@@ -81,6 +91,7 @@ function ReportsPage() {
         </Button>
       </Box>
 
+      {reportsError && <Alert severity="error" sx={{ mb: 3 }}>{t('apiError') || 'حدث خطأ أثناء تحميل التقارير'}</Alert>}
 
       <Card>
         <CardContent>
@@ -88,16 +99,16 @@ function ReportsPage() {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>المشروع</TableCell>
-                  <TableCell>الفترة</TableCell>
-                  <TableCell>تاريخ الإنشاء</TableCell>
-                  <TableCell>المحفز</TableCell>
-                  <TableCell>الحالة</TableCell>
-                  <TableCell>إجراءات</TableCell>
+                  <TableCell>{t('project') || 'المشروع'}</TableCell>
+                  <TableCell>{t('period') || 'الفترة'}</TableCell>
+                  <TableCell>{t('createdAt') || 'تاريخ الإنشاء'}</TableCell>
+                  <TableCell>{t('triggeredBy') || 'المحفز'}</TableCell>
+                  <TableCell>{t('status')}</TableCell>
+                  <TableCell>{t('actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {isLoading ? (
+                {reportsLoading ? (
                   <TableRow>
                     <TableCell colSpan={6} align="center">
                       <CircularProgress />
@@ -117,17 +128,17 @@ function ReportsPage() {
                         {report.period_start} — {report.period_end}
                       </TableCell>
                       <TableCell>
-                        {new Date(report.generated_at).toLocaleDateString('ar-SA')}
+                        {new Date(report.generated_at).toLocaleDateString(i18n.language === 'ar' ? 'ar-SA' : 'en-US')}
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={report.triggered_by === 'auto' ? 'تلقائي' : 'يدوي'}
+                          label={report.triggered_by === 'auto' ? t('automatic') || 'تلقائي' : t('manual') || 'يدوي'}
                           size="small"
                           color={report.triggered_by === 'auto' ? 'info' : 'default'}
                         />
                       </TableCell>
                       <TableCell>
-                        <Chip label="جاهز" color="success" size="small" />
+                        <Chip label={t('ready') || 'جاهز'} color="success" size="small" />
                       </TableCell>
                       <TableCell>
                         <IconButton size="small">
@@ -147,25 +158,26 @@ function ReportsPage() {
       </Card>
 
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>إنشاء تقرير جديد</DialogTitle>
+        <DialogTitle>{t('createNewReport') || 'إنشاء تقرير جديد'}</DialogTitle>
         <DialogContent>
           <FormControl fullWidth sx={{ mt: 2 }}>
-            <InputLabel>المشروع</InputLabel>
+            <InputLabel>{t('project')}</InputLabel>
             <Select
               value={selectedProject}
               onChange={(e) => setSelectedProject(e.target.value)}
-              label="المشروع"
+              label={t('project')}
             >
-              <MenuItem value="">جميع المشاريع</MenuItem>
-              {/* Projects loaded dynamically */}
-              <MenuItem value="demo">مشروع تجريبي</MenuItem>
+              <MenuItem value="">{t('allProjects') || 'جميع المشاريع'}</MenuItem>
+              {projects.map((p: any) => (
+                <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>
+              ))}
             </Select>
           </FormControl>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>إلغاء</Button>
-          <Button variant="contained" onClick={handleGenerate} disabled={generating}>
-            {generating ? <CircularProgress size={20} /> : 'إنشاء'}
+          <Button onClick={() => setOpenDialog(false)} disabled={mutation.isLoading}>{t('cancel')}</Button>
+          <Button variant="contained" onClick={handleGenerate} disabled={mutation.isLoading}>
+            {mutation.isLoading ? <CircularProgress size={20} /> : t('create')}
           </Button>
         </DialogActions>
       </Dialog>

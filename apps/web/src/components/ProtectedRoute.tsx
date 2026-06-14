@@ -1,8 +1,5 @@
-import { Navigate, Outlet } from 'react-router-dom';
-import { useAuthStore } from '../store/authStore';
+import React from 'react';
 
-export default function ProtectedRoute() {
-  // BYPASS AUTH FOR DEMO
-  return <Outlet />;
+export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
 }
-

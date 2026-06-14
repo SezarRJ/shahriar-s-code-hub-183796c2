@@ -4,6 +4,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 // Import i18n configuration
 import '../apps/web/src/i18n';
@@ -18,7 +19,6 @@ const queryClient = new QueryClient({
 });
 
 const theme = createTheme({
-  direction: 'rtl',
   typography: {
     fontFamily: '"Cairo", "Roboto", "Helvetica", "Arial", sans-serif',
   },
@@ -47,10 +47,13 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
+  const { i18n } = useTranslation();
+
   useEffect(() => {
-    document.documentElement.lang = 'ar';
-    document.documentElement.dir = 'rtl';
-  }, []);
+    const lang = i18n.language;
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  }, [i18n.language]);
 
   return (
     <QueryClientProvider client={queryClient}>

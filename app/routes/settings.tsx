@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -18,8 +18,19 @@ import {
   Alert,
 } from '@mui/material';
 import { Settings as SettingsIcon, Save } from '@mui/icons-material';
+import { useAuthStore } from '../apps/web/src/store/authStore';
 
 export const Route = createFileRoute('/settings')({
+  beforeLoad: ({ location }) => {
+    if (!useAuthStore.getState().isAuthenticated) {
+      throw redirect({
+        to: '/login',
+        search: {
+          redirect: location.href,
+        },
+      });
+    }
+  },
   component: SettingsPage,
 });
 
@@ -54,7 +65,7 @@ function SettingsPage() {
 
       {saved && (
         <Alert severity="success" sx={{ mb: 3 }}>
-          تم حفظ الإعدادات بنجاح
+          {t('settingsSaved') || 'تم حفظ الإعدادات بنجاح'}
         </Alert>
       )}
 
@@ -62,29 +73,29 @@ function SettingsPage() {
         <CardContent>
           <Typography variant="h6" fontWeight="bold" gutterBottom>
             <SettingsIcon sx={{ verticalAlign: 'middle', mr: 1 }} />
-            إعدادات الحساب
+            {t('accountSettings') || 'إعدادات الحساب'}
           </Typography>
           <Divider sx={{ my: 2 }} />
 
           <FormControl fullWidth sx={{ mb: 3 }}>
-            <InputLabel>اللغة</InputLabel>
+            <InputLabel>{t('language')}</InputLabel>
             <Select
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
-              label="اللغة"
+              label={t('language')}
             >
-              <MenuItem value="ar">العربية</MenuItem>
-              <MenuItem value="en">English</MenuItem>
+              <MenuItem value="ar">{t('arabic')}</MenuItem>
+              <MenuItem value="en">{t('english')}</MenuItem>
             </Select>
           </FormControl>
 
           <FormControlLabel
             control={<Switch checked={darkMode} onChange={(e) => setDarkMode(e.target.checked)} />}
-            label="الوضع الليلي (تجريبي)"
+            label={t('darkMode') || 'الوضع الليلي (تجريبي)'}
           />
           <FormControlLabel
             control={<Switch checked={notifications} onChange={(e) => setNotifications(e.target.checked)} />}
-            label="تفعيل الإشعارات"
+            label={t('enableNotifications') || 'تفعيل الإشعارات'}
           />
         </CardContent>
       </Card>
@@ -92,24 +103,24 @@ function SettingsPage() {
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" fontWeight="bold" gutterBottom>
-            إعدادات المشروع
+            {t('projectSettings') || 'إعدادات المشروع'}
           </Typography>
           <Divider sx={{ my: 2 }} />
 
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
             <TextField
-              label="عتبة التأخير (أيام)"
+              label={t('delayThreshold') || 'عتبة التأخير (أيام)'}
               type="number"
               value={delayThreshold}
               onChange={(e) => setDelayThreshold(e.target.value)}
-              helperText="الإشعار الأول عند تجاوز هذه المدة"
+              helperText={t('delayThresholdHelp') || 'الإشعار الأول عند تجاوز هذه المدة'}
             />
             <TextField
-              label="عتبة التأخير الحرج (أيام)"
+              label={t('criticalThreshold') || 'عتبة التأخير الحرج (أيام)'}
               type="number"
               value={criticalThreshold}
               onChange={(e) => setCriticalThreshold(e.target.value)}
-              helperText="إشعار حرج عند تجاوز هذه المدة"
+              helperText={t('criticalThresholdHelp') || 'إشعار حرج عند تجاوز هذه المدة'}
             />
           </Box>
         </CardContent>
@@ -118,14 +129,14 @@ function SettingsPage() {
       <Card>
         <CardContent>
           <Typography variant="h6" fontWeight="bold" gutterBottom>
-            الأمان
+            {t('security')}
           </Typography>
           <Divider sx={{ my: 2 }} />
           <Button variant="outlined" color="primary">
-            تفعيل المصادقة الثنائية (MFA)
+            {t('enableMfa') || 'تفعيل المصادقة الثنائية (MFA)'}
           </Button>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            مطلوب لدوري Tenant Admin و Project Manager
+            {t('mfaRequirement') || 'مطلوب لدوري Tenant Admin و Project Manager'}
           </Typography>
         </CardContent>
       </Card>
@@ -137,7 +148,7 @@ function SettingsPage() {
           startIcon={<Save />}
           onClick={handleSave}
         >
-          حفظ الإعدادات
+          {t('saveSettings') || 'حفظ الإعدادات'}
         </Button>
       </Box>
     </Box>

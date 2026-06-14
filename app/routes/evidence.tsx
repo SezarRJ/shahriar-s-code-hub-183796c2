@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -21,8 +21,19 @@ import {
   Image as ImageIcon,
 } from '@mui/icons-material';
 import { exportEvidence, verifyPhoto } from '../apps/web/src/services/api';
+import { useAuthStore } from '../apps/web/src/store/authStore';
 
 export const Route = createFileRoute('/evidence')({
+  beforeLoad: ({ location }) => {
+    if (!useAuthStore.getState().isAuthenticated) {
+      throw redirect({
+        to: '/login',
+        search: {
+          redirect: location.href,
+        },
+      });
+    }
+  },
   component: EvidencePage,
 });
 
@@ -32,6 +43,7 @@ function EvidencePage() {
   const [loading, setLoading] = useState(false);
   const [evidence, setEvidence] = useState<any>(null);
   const [verified, setVerified] = useState<boolean | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = `${t('appName')} — ${t('evidenceExport')}`;
@@ -42,15 +54,16 @@ function EvidencePage() {
   }, [t]);
 
   const handleExport = async () => {
-
     if (!photoId) return;
     setLoading(true);
+    setError(null);
+    setVerified(null);
     try {
       const res = await exportEvidence(photoId);
       setEvidence(res.data.data);
-      setVerified(null);
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      setError(e.response?.data?.error || t('apiError'));
+      setEvidence(null);
     } finally {
       setLoading(false);
     }
@@ -59,11 +72,13 @@ function EvidencePage() {
   const handleVerify = async () => {
     if (!photoId) return;
     setLoading(true);
+    setError(null);
     try {
       const res = await verifyPhoto(photoId);
       setVerified(res.data.data.verified);
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      setError(e.response?.data?.error || t('apiError'));
+      setVerified(null);
     } finally {
       setLoading(false);
     }
@@ -76,15 +91,14 @@ function EvidencePage() {
       </Typography>
 
       <Card sx={{ mb: 3 }}>
-
         <CardContent>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
             <TextField
               fullWidth
-              label="معرف الصورة (UUID)"
+              label={t('photoIdLabel') || 'معرف الصورة (UUID)'}
               value={photoId}
               onChange={(e) => setPhotoId(e.target.value)}
-              placeholder="أدخل معرف الصورة للتحقق منها"
+              placeholder={t('photoIdPlaceholder') || 'أدخل معرف الصورة للتحقق منها'}
             />
             <Button
               variant="contained"
@@ -106,21 +120,23 @@ function EvidencePage() {
         </CardContent>
       </Card>
 
+      {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+
       {loading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
           <CircularProgress />
         </Box>
       )}
 
-      {verified !== null && (
+      {verified !== null && !loading && (
         <Alert severity={verified ? 'success' : 'error'} sx={{ mb: 3 }}>
           {verified
-            ? '✅ التحقق من الصورة ناجح: تجزئة SHA-256 مطابقة.'
-            : '❌ التحقق فشل: تجزئة SHA-256 غير متطابقة.'}
+            ? t('verifySuccess') || '✅ التحقق من الصورة ناجح: تجزئة SHA-256 مطابقة.'
+            : t('verifyFailure') || '❌ التحقق فشل: تجزئة SHA-256 غير متطابقة.'}
         </Alert>
       )}
 
-      {evidence && (
+      {evidence && !loading && (
         <Card>
           <CardContent>
             <Grid container spacing={3}>
@@ -141,7 +157,7 @@ function EvidencePage() {
               </Grid>
               <Grid item xs={12} md={8}>
                 <Typography variant="h6" fontWeight="bold" gutterBottom>
-                  {evidence.project?.name || 'مشروع'}
+                  {evidence.project?.name || t('project')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
                   {evidence.project?.address || '—'}
@@ -152,7 +168,7 @@ function EvidencePage() {
                 <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
                   <Box>
                     <Typography variant="caption" color="text.secondary">
-                      نقطة التقاط
+                      {t('capturePoint')}
                     </Typography>
                     <Typography variant="body1" fontWeight="bold">
                       {evidence.capture_point?.name || '—'}
@@ -160,7 +176,7 @@ function EvidencePage() {
                   </Box>
                   <Box>
                     <Typography variant="caption" color="text.secondary">
-                      المنطقة
+                      {t('zone')}
                     </Typography>
                     <Typography variant="body1" fontWeight="bold">
                       {evidence.capture_point?.zone || '—'}
@@ -168,15 +184,15 @@ function EvidencePage() {
                   </Box>
                   <Box>
                     <Typography variant="caption" color="text.secondary">
-                      التاريخ والوقت
+                      {t('dateTime')}
                     </Typography>
                     <Typography variant="body1" fontWeight="bold">
-                      {new Date(evidence.capture?.captured_at).toLocaleString('ar-SA')}
+                      {new Date(evidence.capture?.captured_at).toLocaleString(i18n.language === 'ar' ? 'ar-SA' : 'en-US')}
                     </Typography>
                   </Box>
                   <Box>
                     <Typography variant="caption" color="text.secondary">
-                      الجهاز
+                      {t('device')}
                     </Typography>
                     <Typography variant="body1" fontWeight="bold">
                       {evidence.capture?.device_model || '—'}
@@ -188,7 +204,7 @@ function EvidencePage() {
 
                 <Box>
                   <Typography variant="caption" color="text.secondary">
-                    GPS
+                    {t('gps')}
                   </Typography>
                   <Typography variant="body1" fontWeight="bold">
                     {evidence.capture?.gps?.latitude?.toFixed(6)}, {evidence.capture?.gps?.longitude?.toFixed(6)}
@@ -209,7 +225,7 @@ function EvidencePage() {
                     variant="outlined"
                   />
                   <Button size="small" startIcon={<Download />}>
-                    PDF
+                    {t('downloadPdf') || 'PDF'}
                   </Button>
                 </Box>
               </Grid>

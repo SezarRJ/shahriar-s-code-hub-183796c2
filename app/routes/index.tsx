@@ -1,7 +1,6 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate, redirect } from '@tanstack/react-router';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Grid,
@@ -29,13 +28,24 @@ import {
 } from '@mui/icons-material';
 import { useQuery } from 'react-query';
 import { fetchProjects, fetchReports, fetchNotifications, api } from '../apps/web/src/services/api';
+import { useAuthStore } from '../apps/web/src/store/authStore';
 
 export const Route = createFileRoute('/')({
+  beforeLoad: ({ location }) => {
+    if (!useAuthStore.getState().isAuthenticated) {
+      throw redirect({
+        to: '/login',
+        search: {
+          redirect: location.href,
+        },
+      });
+    }
+  },
   component: DashboardPage,
 });
 
 function DashboardPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -46,11 +56,11 @@ function DashboardPage() {
     }
   }, [t]);
 
-  const { data: projectsData, isLoading: projectsLoading } = useQuery('projects', fetchProjects);
+  const { data: projectsData, isLoading: projectsLoading, isError: projectsError } = useQuery('projects', fetchProjects);
 
-  const { data: reportsData, isLoading: reportsLoading } = useQuery('reports', fetchReports);
+  const { data: reportsData, isLoading: reportsLoading, isError: reportsError } = useQuery('reports', fetchReports);
   const { data: notificationsData } = useQuery('notifications', fetchNotifications);
-  const { data: kpiData, isLoading: kpiLoading } = useQuery(
+  const { data: kpiData, isLoading: kpiLoading, isError: kpiError } = useQuery(
     'dashboard-kpi',
     () => api.get('/dashboard/summary').then((r) => r.data),
     { refetchInterval: 300000 } // 5-minute auto-refresh (FR-4.7)
@@ -106,9 +116,15 @@ function DashboardPage() {
         </Box>
       )}
 
+      {(kpiError || projectsError || reportsError) && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {t('apiError') || 'حدث خطأ أثناء تحميل البيانات. يرجى المحاولة مرة أخرى.'}
+        </Alert>
+      )}
+
       {kpi.overdue_points > 0 && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          {`⚠️ ${kpi.overdue_points} نقاط التقاط متأخرة في المشاريع النشطة. راجع التفاصيل في المشاريع.`}
+          {`⚠️ ${kpi.overdue_points} ${t('overduePoints')} ${t('activeProjects')}. ${t('reviewProjects') || 'راجع التفاصيل في المشاريع.'}`}
         </Alert>
       )}
 
@@ -121,7 +137,7 @@ function DashboardPage() {
                 transition: 'transform 0.2s, box-shadow 0.2s',
                 '&:hover': { transform: 'translateY(-2px)', boxShadow: 4 },
               }}
-              onClick={() => navigate(kpi.link)}
+              onClick={() => navigate({ to: kpi.link })}
             >
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
@@ -129,7 +145,7 @@ function DashboardPage() {
                     {kpi.icon}
                   </Avatar>
                   <Button size="small" endIcon={<ArrowForward />} color={kpi.color}>
-                    عرض
+                    {t('view') || 'عرض'}
                   </Button>
                 </Box>
                 <Typography variant="h3" fontWeight="bold">
@@ -152,8 +168,8 @@ function DashboardPage() {
                 <Typography variant="h6" fontWeight="bold">
                   {t('projects')}
                 </Typography>
-                <Button size="small" onClick={() => navigate('/projects')}>
-                  عرض الكل
+                <Button size="small" onClick={() => navigate({ to: '/projects' })}>
+                  {t('viewAll') || 'عرض الكل'}
                 </Button>
               </Box>
               {projectsLoading ? (
@@ -193,8 +209,8 @@ function DashboardPage() {
                 <Typography variant="h6" fontWeight="bold">
                   {t('reports')}
                 </Typography>
-                <Button size="small" onClick={() => navigate('/reports')}>
-                  عرض الكل
+                <Button size="small" onClick={() => navigate({ to: '/reports' })}>
+                  {t('viewAll') || 'عرض الكل'}
                 </Button>
               </Box>
               {reportsLoading ? (
@@ -211,8 +227,8 @@ function DashboardPage() {
                         </Avatar>
                       </ListItemAvatar>
                       <ListItemText
-                        primary={report.period_start ? `${report.period_start} — ${report.period_end}` : 'تقرير'}
-                        secondary={new Date(report.generated_at).toLocaleDateString('ar-SA')}
+                        primary={report.period_start ? `${report.period_start} — ${report.period_end}` : t('report')}
+                        secondary={new Date(report.generated_at).toLocaleDateString(i18n.language === 'ar' ? 'ar-SA' : 'en-US')}
                       />
                       <Button size="small" variant="outlined">
                         PDF
@@ -230,14 +246,14 @@ function DashboardPage() {
                 {t('notifications')}
               </Typography>
               {notifications.length === 0 ? (
-                <Typography color="text.secondary">لا توجد إشعارات جديدة</Typography>
+                <Typography color="text.secondary">{t('noNotifications') || 'لا توجد إشعارات جديدة'}</Typography>
               ) : (
                 <List dense>
                   {notifications.slice(0, 5).map((n: any) => (
                     <ListItem key={n.id} divider>
                       <ListItemText
-                        primary={n.payload?.title || 'إشعار'}
-                        secondary={new Date(n.created_at).toLocaleDateString('ar-SA')}
+                        primary={n.payload?.title || t('notification')}
+                        secondary={new Date(n.created_at).toLocaleDateString(i18n.language === 'ar' ? 'ar-SA' : 'en-US')}
                       />
                     </ListItem>
                   ))}

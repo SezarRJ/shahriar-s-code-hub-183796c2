@@ -1,8 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate, redirect } from '@tanstack/react-router';
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from 'react-query';
+import { useQuery, useMutation } from 'react-query';
 import {
   Box,
   Typography,
@@ -28,25 +27,39 @@ import {
   Select,
   MenuItem,
   OutlinedInput,
+  CircularProgress,
+  LinearProgress,
+  Alert,
 } from '@mui/material';
 import {
   Add,
   Search,
   ArrowForward,
   Apartment,
-  Map,
   UploadFile,
 } from '@mui/icons-material';
 import { fetchProjects, createProject } from '../apps/web/src/services/api';
+import { useAuthStore } from '../apps/web/src/store/authStore';
 
 export const Route = createFileRoute('/projects')({
+  beforeLoad: ({ location }) => {
+    if (!useAuthStore.getState().isAuthenticated) {
+      throw redirect({
+        to: '/login',
+        search: {
+          redirect: location.href,
+        },
+      });
+    }
+  },
   component: ProjectsPage,
 });
 
 function ProjectsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { data, isLoading, refetch } = useQuery('projects', fetchProjects);
+  
+  const { data, isLoading, isError, refetch } = useQuery('projects', fetchProjects);
   const projects = data?.data?.data || [];
 
   useEffect(() => {
@@ -58,7 +71,6 @@ function ProjectsPage() {
   }, [t]);
 
   const [search, setSearch] = useState('');
-
   const [openDialog, setOpenDialog] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [newProject, setNewProject] = useState({
@@ -69,16 +81,21 @@ function ProjectsPage() {
     report_language: 'ar',
   });
 
+  const mutation = useMutation(createProject, {
+    onSuccess: () => {
+      setOpenDialog(false);
+      refetch();
+    },
+  });
+
   const filtered = projects.filter((p: any) =>
     p.name?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const steps = ['معلومات المشروع', 'المناطق', 'نقاط التقاط', 'إنشاء'];
+  const steps = [t('projectInfo'), t('zones'), t('capturePoints'), t('create')];
 
   const handleCreate = async () => {
-    await createProject(newProject);
-    setOpenDialog(false);
-    refetch();
+    mutation.mutate(newProject);
   };
 
   return (
@@ -92,10 +109,9 @@ function ProjectsPage() {
         </Fab>
       </Box>
 
-
       <TextField
         fullWidth
-        placeholder="بحث في المشاريع..."
+        placeholder={t('searchPlaceholder') || 'بحث في المشاريع...'}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         sx={{ mb: 3 }}
@@ -108,6 +124,9 @@ function ProjectsPage() {
         }}
       />
 
+      {isLoading && <LinearProgress sx={{ mb: 3 }} />}
+      {isError && <Alert severity="error" sx={{ mb: 3 }}>{t('apiError') || 'حدث خطأ أثناء تحميل المشاريع'}</Alert>}
+
       <Grid container spacing={3}>
         {filtered.map((project: any) => (
           <Grid item xs={12} md={6} lg={4} key={project.id}>
@@ -117,7 +136,7 @@ function ProjectsPage() {
                 transition: 'box-shadow 0.2s',
                 '&:hover': { boxShadow: 4 },
               }}
-              onClick={() => navigate(`/projects/${project.id}`)}
+              onClick={() => navigate({ to: `/projects/${project.id}` })}
             >
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>
@@ -136,7 +155,7 @@ function ProjectsPage() {
                 </Typography>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
                   <Typography variant="caption" color="text.secondary">
-                    {new Date(project.created_at).toLocaleDateString('ar-SA')}
+                    {new Date(project.created_at).toLocaleDateString(i18n.language === 'ar' ? 'ar-SA' : 'en-US')}
                   </Typography>
                   <IconButton size="small">
                     <ArrowForward />
@@ -149,7 +168,7 @@ function ProjectsPage() {
       </Grid>
 
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>إنشاء مشروع جديد</DialogTitle>
+        <DialogTitle>{t('createNewProject') || 'إنشاء مشروع جديد'}</DialogTitle>
         <DialogContent>
           <Stepper activeStep={activeStep} orientation="vertical" sx={{ mt: 2 }}>
             {steps.map((label, index) => (
@@ -159,26 +178,26 @@ function ProjectsPage() {
                   {index === 0 && (
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
                       <TextField
-                        label="اسم المشروع"
+                        label={t('projectName')}
                         fullWidth
                         value={newProject.name}
                         onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
                       />
                       <TextField
-                        label="العنوان"
+                        label={t('address')}
                         fullWidth
                         value={newProject.address}
                         onChange={(e) => setNewProject({ ...newProject, address: e.target.value })}
                       />
                       <FormControl fullWidth>
-                        <InputLabel>لغة التقارير</InputLabel>
+                        <InputLabel>{t('reportLanguage')}</InputLabel>
                         <Select
                           value={newProject.report_language}
                           onChange={(e) => setNewProject({ ...newProject, report_language: e.target.value })}
-                          input={<OutlinedInput label="لغة التقارير" />}
+                          input={<OutlinedInput label={t('reportLanguage')} />}
                         >
-                          <MenuItem value="ar">العربية</MenuItem>
-                          <MenuItem value="en">English</MenuItem>
+                          <MenuItem value="ar">{t('arabic')}</MenuItem>
+                          <MenuItem value="en">{t('english')}</MenuItem>
                         </Select>
                       </FormControl>
                     </Box>
@@ -186,39 +205,40 @@ function ProjectsPage() {
                   {index === 1 && (
                     <Box sx={{ mt: 1 }}>
                       <Typography color="text.secondary">
-                        يمكنك إضافة المناطق والمستويات الهرمية بعد إنشاء المشروع.
+                        {t('zonesInstruction') || 'يمكنك إضافة المناطق والمستويات الهرمية بعد إنشاء المشروع.'}
                       </Typography>
                     </Box>
                   )}
                   {index === 2 && (
                     <Box sx={{ mt: 1 }}>
                       <Typography color="text.secondary">
-                        يمكن استيراد نقاط التقاط من ملف CSV بعد إنشاء المشروع.
+                        {t('capturePointsInstruction') || 'يمكن استيراد نقاط التقاط من ملف CSV بعد إنشاء المشروع.'}
                       </Typography>
                       <Button startIcon={<UploadFile />} sx={{ mt: 1 }}>
-                        رفع نموذج CSV
+                        {t('uploadCSV') || 'رفع نموذج CSV'}
                       </Button>
                     </Box>
                   )}
                   {index === 3 && (
                     <Box sx={{ mt: 1 }}>
-                      <Typography>تأكيد إنشاء المشروع</Typography>
+                      <Typography>{t('confirmCreate') || 'تأكيد إنشاء المشروع'}</Typography>
                     </Box>
                   )}
                   <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
                     <Button
                       variant="contained"
+                      disabled={mutation.isLoading}
                       onClick={
                         index === steps.length - 1
                           ? handleCreate
                           : () => setActiveStep((prev) => prev + 1)
                       }
                     >
-                      {index === steps.length - 1 ? 'إنشاء' : 'التالي'}
+                      {mutation.isLoading ? <CircularProgress size={24} /> : (index === steps.length - 1 ? t('create') : t('next'))}
                     </Button>
                     {index > 0 && (
-                      <Button onClick={() => setActiveStep((prev) => prev - 1)}>
-                        السابق
+                      <Button onClick={() => setActiveStep((prev) => prev - 1)} disabled={mutation.isLoading}>
+                        {t('previous')}
                       </Button>
                     )}
                   </Box>
@@ -228,7 +248,7 @@ function ProjectsPage() {
           </Stepper>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>إلغاء</Button>
+          <Button onClick={() => setOpenDialog(false)} disabled={mutation.isLoading}>{t('cancel')}</Button>
         </DialogActions>
       </Dialog>
     </Box>

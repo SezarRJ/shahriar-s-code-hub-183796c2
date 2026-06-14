@@ -1,7 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from 'react-query';
+import { useQuery, useMutation } from 'react-query';
 import {
   Box,
   Typography,
@@ -27,18 +27,30 @@ import {
   Select,
   MenuItem,
   CircularProgress,
+  Alert,
 } from '@mui/material';
 import { Add, Edit, Delete } from '@mui/icons-material';
 import { fetchUsers, createUser } from '../apps/web/src/services/api';
+import { useAuthStore } from '../apps/web/src/store/authStore';
 
 export const Route = createFileRoute('/users')({
+  beforeLoad: ({ location }) => {
+    if (!useAuthStore.getState().isAuthenticated) {
+      throw redirect({
+        to: '/login',
+        search: {
+          redirect: location.href,
+        },
+      });
+    }
+  },
   component: UsersPage,
 });
 
 function UsersPage() {
   const { t } = useTranslation();
-  const { data, isLoading, refetch } = useQuery('users', fetchUsers);
-  const users = data?.data?.data || [];
+  const { data: usersData, isLoading, isError, refetch } = useQuery('users', fetchUsers);
+  const users = usersData?.data?.data || [];
 
   useEffect(() => {
     document.title = `${t('appName')} — ${t('users')}`;
@@ -57,10 +69,15 @@ function UsersPage() {
     mfa_enabled: false,
   });
 
+  const mutation = useMutation(createUser, {
+    onSuccess: () => {
+      setOpenDialog(false);
+      refetch();
+    },
+  });
+
   const handleCreate = async () => {
-    await createUser(newUser);
-    setOpenDialog(false);
-    refetch();
+    mutation.mutate(newUser);
   };
 
   return (
@@ -70,10 +87,11 @@ function UsersPage() {
           {t('users')}
         </Typography>
         <Button variant="contained" startIcon={<Add />} onClick={() => setOpenDialog(true)}>
-          إضافة مستخدم
+          {t('addUser') || 'إضافة مستخدم'}
         </Button>
       </Box>
 
+      {isError && <Alert severity="error" sx={{ mb: 3 }}>{t('apiError') || 'حدث خطأ أثناء تحميل المستخدمين'}</Alert>}
 
       <Card>
         <CardContent>
@@ -81,12 +99,12 @@ function UsersPage() {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>الاسم</TableCell>
-                  <TableCell>البريد الإلكتروني</TableCell>
-                  <TableCell>الدور</TableCell>
+                  <TableCell>{t('name') || 'الاسم'}</TableCell>
+                  <TableCell>{t('email')}</TableCell>
+                  <TableCell>{t('role') || 'الدور'}</TableCell>
                   <TableCell>MFA</TableCell>
-                  <TableCell>الحالة</TableCell>
-                  <TableCell>إجراءات</TableCell>
+                  <TableCell>{t('status')}</TableCell>
+                  <TableCell>{t('actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -116,14 +134,14 @@ function UsersPage() {
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={user.mfa_enabled ? 'مفعل' : 'غير مفعل'}
+                          label={user.mfa_enabled ? t('enabled') || 'مفعل' : t('disabled') || 'غير مفعل'}
                           color={user.mfa_enabled ? 'success' : 'default'}
                           size="small"
                         />
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={user.is_active ? 'نشط' : 'معطل'}
+                          label={user.is_active ? t('active') : t('disabled') || 'معطل'}
                           color={user.is_active ? 'success' : 'default'}
                           size="small"
                         />
@@ -142,28 +160,28 @@ function UsersPage() {
       </Card>
 
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>إضافة مستخدم جديد</DialogTitle>
+        <DialogTitle>{t('addUserTitle') || 'إضافة مستخدم جديد'}</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
             <TextField
-              label="الاسم"
+              label={t('name')}
               fullWidth
               value={newUser.name}
               onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
             />
             <TextField
-              label="البريد الإلكتروني"
+              label={t('email')}
               type="email"
               fullWidth
               value={newUser.email}
               onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
             />
             <FormControl fullWidth>
-              <InputLabel>الدور</InputLabel>
+              <InputLabel>{t('role')}</InputLabel>
               <Select
                 value={newUser.role}
                 onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                label="الدور"
+                label={t('role')}
               >
                 <MenuItem value="tenant_admin">Tenant Admin</MenuItem>
                 <MenuItem value="project_manager">Project Manager</MenuItem>
@@ -175,8 +193,10 @@ function UsersPage() {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>إلغاء</Button>
-          <Button variant="contained" onClick={handleCreate}>إنشاء</Button>
+          <Button onClick={() => setOpenDialog(false)} disabled={mutation.isLoading}>{t('cancel')}</Button>
+          <Button variant="contained" onClick={handleCreate} disabled={mutation.isLoading}>
+            {mutation.isLoading ? <CircularProgress size={20} /> : t('create')}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

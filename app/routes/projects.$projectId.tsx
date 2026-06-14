@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate, redirect } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from 'react-query';
 import {
@@ -21,50 +20,82 @@ import {
   Button,
   Tabs,
   Tab,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
 import { ArrowBack } from '@mui/icons-material';
 import { fetchProject } from '../apps/web/src/services/api';
+import { useAuthStore } from '../apps/web/src/store/authStore';
 
 export const Route = createFileRoute('/projects/$projectId')({
+  beforeLoad: ({ location }) => {
+    if (!useAuthStore.getState().isAuthenticated) {
+      throw redirect({
+        to: '/login',
+        search: {
+          redirect: location.href,
+        },
+      });
+    }
+  },
   component: ProjectDetailPage,
 });
 
 function ProjectDetailPage() {
-  const { projectId } = useParams<{ projectId: string }>();
+  const { projectId } = Route.useParams();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [tab, setTab] = useState(0);
 
   useEffect(() => {
-    document.title = `${t('appName')} — Project Details`;
+    document.title = `${t('appName')} — ${t('projectDetails') || 'Project Details'}`;
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
       metaDesc.setAttribute('content', t('projectDetailPageDescription') || 'Detailed view of construction project progress, zones and capture points');
     }
-  }, [t]);
+  }, [t, projectId]);
 
-  const { data, isLoading } = useQuery(['project', projectId], () => fetchProject(projectId!));
+  const { data, isLoading, isError } = useQuery(['project', projectId], () => fetchProject(projectId!));
   const project = data?.data?.data;
+
+  if (isLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">{t('apiError') || 'حدث خطأ أثناء تحميل تفاصيل المشروع'}</Alert>
+        <Button startIcon={<ArrowBack />} onClick={() => navigate({ to: '/projects' })} sx={{ mt: 2 }}>
+          {t('backToProjects') || 'العودة إلى المشاريع'}
+        </Button>
+      </Box>
+    );
+  }
 
   return (
     <Box>
       <Button
         startIcon={<ArrowBack />}
-        onClick={() => navigate('/projects')}
+        onClick={() => navigate({ to: '/projects' })}
         sx={{ mb: 2 }}
       >
-        العودة إلى المشاريع
+        {t('backToProjects') || 'العودة إلى المشاريع'}
       </Button>
 
       <Typography variant="h4" component="h1" fontWeight="bold" gutterBottom>
-        {isLoading ? 'جارٍ التحميل...' : project?.name || 'مشروع'}
+        {project?.name || t('project')}
       </Typography>
 
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3 }}>
-        <Tab label="نظرة عامة" />
-        <Tab label="نقاط التقاط" />
-        <Tab label="الصور" />
-        <Tab label="الجدول الزمني" />
+        <Tab label={t('overview') || 'نظرة عامة'} />
+        <Tab label={t('capturePoints') || 'نقاط التقاط'} />
+        <Tab label={t('photos') || 'الصور'} />
+        <Tab label={t('timeline') || 'الجدول الزمني'} />
       </Tabs>
 
       {tab === 0 && (
@@ -72,14 +103,14 @@ function ProjectDetailPage() {
           <Grid item xs={12} md={4}>
             <Card>
               <CardContent>
-                <Typography variant="body2" color="text.secondary">الحالة</Typography>
+                <Typography variant="body2" color="text.secondary">{t('status')}</Typography>
                 <Chip
-                  label={project?.status === 'active' ? 'نشط' : project?.status}
+                  label={project?.status === 'active' ? t('active') : project?.status}
                   color={project?.status === 'active' ? 'success' : 'default'}
                   sx={{ mt: 1 }}
                 />
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                  العنوان
+                  {t('address')}
                 </Typography>
                 <Typography variant="body1">{project?.address || '—'}</Typography>
               </CardContent>
@@ -88,7 +119,7 @@ function ProjectDetailPage() {
           <Grid item xs={12} md={4}>
             <Card>
               <CardContent>
-                <Typography variant="body2" color="text.secondary">نسبة الإنجاز</Typography>
+                <Typography variant="body2" color="text.secondary">{t('completionRate') || 'نسبة الإنجاز'}</Typography>
                 <LinearProgress variant="determinate" value={0} sx={{ mt: 1, height: 8, borderRadius: 4 }} />
                 <Typography variant="h6" fontWeight="bold" sx={{ mt: 1 }}>0%</Typography>
               </CardContent>
@@ -97,7 +128,7 @@ function ProjectDetailPage() {
           <Grid item xs={12} md={4}>
             <Card>
               <CardContent>
-                <Typography variant="body2" color="text.secondary">نقاط متأخرة</Typography>
+                <Typography variant="body2" color="text.secondary">{t('overduePoints')}</Typography>
                 <Typography variant="h6" fontWeight="bold" color="error" sx={{ mt: 1 }}>0</Typography>
               </CardContent>
             </Card>
@@ -112,16 +143,16 @@ function ProjectDetailPage() {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>النقطة</TableCell>
-                    <TableCell>المنطقة</TableCell>
-                    <TableCell>المرحلة المتوقعة</TableCell>
-                    <TableCell>آخر التقاط</TableCell>
-                    <TableCell>الحالة</TableCell>
+                    <TableCell>{t('point') || 'النقطة'}</TableCell>
+                    <TableCell>{t('zone') || 'المنطقة'}</TableCell>
+                    <TableCell>{t('expectedPhase') || 'المرحلة المتوقعة'}</TableCell>
+                    <TableCell>{t('lastCapture') || 'آخر التقاط'}</TableCell>
+                    <TableCell>{t('status')}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   <TableRow>
-                    <TableCell colSpan={5} align="center">لا توجد بيانات</TableCell>
+                    <TableCell colSpan={5} align="center">{t('noData')}</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
@@ -133,7 +164,7 @@ function ProjectDetailPage() {
       {tab === 2 && (
         <Card>
           <CardContent>
-            <Typography color="text.secondary">لا توجد صور مسجلة بعد.</Typography>
+            <Typography color="text.secondary">{t('noPhotosYet') || 'لا توجد صور مسجلة بعد.'}</Typography>
           </CardContent>
         </Card>
       )}
@@ -141,7 +172,7 @@ function ProjectDetailPage() {
       {tab === 3 && (
         <Card>
           <CardContent>
-            <Typography color="text.secondary">الجدول الزمني قيد التطوير.</Typography>
+            <Typography color="text.secondary">{t('timelineUnderDevelopment') || 'الجدول الزمني قيد التطوير.'}</Typography>
           </CardContent>
         </Card>
       )}
