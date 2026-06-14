@@ -112,9 +112,10 @@ async def download_image_from_url(image_url: str) -> bytes:
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.get(image_url)
         if response.status_code != 200:
+            print(f"Image download failed: {image_url} status={response.status_code}", flush=True)
             raise HTTPException(
-                status_code=500,
-                detail=f"Failed to download image from {image_url}: {response.status_code}"
+                status_code=502,
+                detail="Failed to download image"
             )
         return response.content
 
@@ -206,7 +207,8 @@ async def analyze_photo(request: AIResultRequest):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"analyze_photo error: {e}", flush=True)
+        raise HTTPException(status_code=500, detail="Internal processing error")
 
 
 @app.post("/batch-analyze", dependencies=[Depends(verify_service_token)])
@@ -242,7 +244,8 @@ async def batch_analyze(background_tasks: BackgroundTasks):
         return {"queued": queued, "status": "processing"}
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"batch_analyze error: {e}", flush=True)
+        raise HTTPException(status_code=500, detail="Internal processing error")
 
 
 @app.get("/results/{photo_id}", dependencies=[Depends(verify_service_token)])
@@ -266,7 +269,8 @@ async def get_results(photo_id: UUID4):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"get_results error: {e}", flush=True)
+        raise HTTPException(status_code=500, detail="Internal processing error")
 
 
 def simulate_classification(image_bytes: bytes) -> dict:
