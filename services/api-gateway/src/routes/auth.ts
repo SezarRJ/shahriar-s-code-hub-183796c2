@@ -1,9 +1,10 @@
 import { Router, Request, Response } from 'express';
-import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
+import { getSupabaseClient } from '../utils/supabase';
 import { logger } from '../utils/logger';
 
 const router = Router();
+
 
 const supabaseUrl = process.env.SUPABASE_URL || 'http://localhost:9999';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
@@ -23,7 +24,7 @@ const signupSchema = z.object({
 router.post('/login', async (req: Request, res: Response) => {
   try {
     const parsed = loginSchema.parse(req.body);
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = getSupabaseClient(supabaseUrl, supabaseServiceKey);
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email: parsed.email,
@@ -50,7 +51,7 @@ router.post('/login', async (req: Request, res: Response) => {
 router.post('/signup', async (req: Request, res: Response) => {
   try {
     const parsed = signupSchema.parse(req.body);
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = getSupabaseClient(supabaseUrl, supabaseServiceKey);
 
     // Create auth user
     const { data: authData, error: authError } = await supabase.auth.signUp({

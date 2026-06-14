@@ -1,8 +1,11 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
 
+// Use environment variable for API base URL to allow easy switching between local and production
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+
 const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },

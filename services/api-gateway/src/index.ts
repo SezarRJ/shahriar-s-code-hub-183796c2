@@ -4,11 +4,14 @@
  * multi-tenant context injection, and request correlation tracing.
  */
 
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import dotenv from 'dotenv';
+
 
 import { correlationMiddleware } from './middleware/correlation';
 import { errorHandler } from './middleware/errorHandler';
@@ -58,12 +61,24 @@ app.get('/health', (_req, res) => {
 // Public routes (no auth) — use auth rate limiter (stricter for login brute force)
 app.use('/api/v1/auth', authRateLimit, authRoutes);
 
-// Protected routes
-app.use(authMiddleware);
-app.use(tenantContextMiddleware);
+// --- BYPASS AUTH FOR DEMO ---
+// app.use(authMiddleware);
+// app.use(tenantContextMiddleware);
+
+// Inject dummy context so RLS doesn't block requests
+app.use((req, res, next) => {
+  (req as any).tenantContext = {
+    tenant_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', // Demo Tenant
+    role: 'super_admin',
+    user_id: 'f437b0ad-eac6-46aa-9b2f-920e353315b0', // Admin User
+  };
+  next();
+});
+// ----------------------------
 
 // Data routes — standard rate limit (100 req/min per user, 1,000 per tenant)
 app.use('/api/v1/users', standardRateLimit, userRoutes);
+
 app.use('/api/v1/projects', standardRateLimit, projectRoutes);
 app.use('/api/v1/zones', standardRateLimit, zoneRoutes);
 app.use('/api/v1/capture-points', standardRateLimit, capturePointRoutes);

@@ -5,7 +5,11 @@ const pool = new Pool({
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
+
 
 pool.on('error', (err) => {
   console.error('Unexpected database pool error', err);
@@ -32,5 +36,13 @@ export async function getClientWithContext(context: TenantContext) {
   
   return client;
 }
+
+// Add this to the end of the file or a new utility
+export const poolConfig = {
+  ssl: {
+    rejectUnauthorized: false,
+  },
+};
+
 
 export default pool;

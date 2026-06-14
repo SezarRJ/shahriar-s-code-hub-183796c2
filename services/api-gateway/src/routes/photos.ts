@@ -2,11 +2,13 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { getClientWithContext } from '../utils/db';
 import { logger } from '../utils/logger';
+import { getSupabaseClient } from '../utils/supabase';
 import multer from 'multer';
 import crypto from 'crypto';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
+
 
 const photoMetadataSchema = z.object({
   capture_point_id: z.string().uuid(),
@@ -88,14 +90,14 @@ router.post('/', upload.single('photo'), async (req: Request, res: Response) => 
     logger.info({
       message: 'Photo uploaded',
       photoId: result.rows[0].id,
-      hash: hash,
+      hash: serverHash,
       correlationId: req.correlationId,
     });
 
     res.status(201).json({
       data: {
         photo: result.rows[0],
-        hash_sha256: hash,
+        hash_sha256: serverHash,
       },
     });
   } catch (err) {

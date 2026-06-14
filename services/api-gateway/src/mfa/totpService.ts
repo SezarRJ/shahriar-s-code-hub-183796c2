@@ -8,11 +8,17 @@
 
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
-import { logger } from '../../utils/logger';
+import ws from 'ws';
+import { logger } from '../utils/logger';
 
 const supabaseUrl = process.env.SUPABASE_URL || 'http://localhost:9999';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseServiceKey, { auth: { autoRefreshToken: false, persistSession: false } });
+const supabase = createClient(supabaseUrl, supabaseServiceKey, { 
+  auth: { autoRefreshToken: false, persistSession: false },
+  realtime: { transport: ws as any }
+});
+
+
 
 const TOTP_SECRET_LENGTH = 20;
 const TIME_STEP = 30;

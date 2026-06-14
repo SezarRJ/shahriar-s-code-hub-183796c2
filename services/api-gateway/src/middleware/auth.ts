@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { logger } from '../utils/logger';
+import { getSupabaseClient } from '../utils/supabase';
 
 declare global {
   namespace Express {
@@ -35,10 +36,8 @@ export async function authMiddleware(
 
     const token = authHeader.split(' ')[1];
 
-    // Create Supabase client with service role for server-side verification
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
+    // Create Supabase client using utility to avoid WebSocket crash
+    const supabase = getSupabaseClient(supabaseUrl, supabaseServiceKey);
 
     const { data: { user: authUser }, error } = await supabase.auth.getUser(token);
 

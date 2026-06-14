@@ -1,0 +1,95 @@
+services:
+  api-gateway:
+    type: web-service
+    name: shahid-api-gateway
+    env: docker
+    plan: free
+    region: oregon
+    dockerfilePath: services/api-gateway/Dockerfile
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SUPABASE_URL
+        fromEnv: SUPABASE_URL
+      - key: SUPABASE_SERVICE_KEY
+        fromEnv: SUPABASE_SERVICE_KEY
+      - key: DATABASE_URL
+        fromEnv: DATABASE_URL
+      - key: INTERNAL_SERVICE_TOKEN
+        fromEnv: INTERNAL_SERVICE_TOKEN
+      - key: REDIS_URL
+        fromEnv: REDIS_URL
+
+  ai-service:
+    type: web-service
+    name: shahid-ai-service
+    env: docker
+    plan: free
+    region: oregon
+    dockerfilePath: services/ai-service/Dockerfile
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromEnv: DATABASE_URL
+      - key: REDIS_URL
+        fromEnv: REDIS_URL
+      - key: GOOGLE_VISION_API_KEY
+        fromEnv: GOOGLE_VISION_API_KEY
+      - key: ANTHROPIC_API_KEY
+        fromEnv: ANTHROPIC_API_KEY
+      - key: INTERNAL_SERVICE_TOKEN
+        fromEnv: INTERNAL_SERVICE_TOKEN
+
+  storage-service:
+    type: web-service
+    name: shahid-storage-service
+    env: docker
+    plan: free
+    region: oregon
+    dockerfilePath: services/storage-service/Dockerfile
+    envVars:
+      - key: S3_ENDPOINT
+        fromEnv: S3_ENDPOINT
+      - key: S3_ACCESS_KEY
+        fromEnv: S3_ACCESS_KEY
+      - key: S3_SECRET_KEY
+        fromEnv: S3_SECRET_KEY
+      - key: S3_BUCKET
+        fromEnv: S3_BUCKET
+      - key: INTERNAL_SERVICE_TOKEN
+        fromEnv: INTERNAL_SERVICE_TOKEN
+
+  notification-service:
+    type: web-service
+    name: shahid-notification-service
+    env: docker
+    plan: free
+    region: oregon
+    dockerfilePath: services/notification-service/Dockerfile
+    envVars:
+      - key: DATABASE_URL
+        fromEnv: DATABASE_URL
+      - key: REDIS_URL
+        fromEnv: REDIS_URL
+      - key: INTERNAL_SERVICE_TOKEN
+        fromEnv: INTERNAL_SERVICE_TOKEN
+      - key: SMTP_HOST
+        fromEnv: SMTP_HOST
+      - key: SMTP_PORT
+        fromEnv: SMTP_PORT
+
+  report-service:
+    type: web-service
+    name: shahid-report-service
+    env: docker
+    plan: free
+    region: oregon
+    dockerfilePath: services/report-service/Dockerfile
+    envVars:
+      - key: DATABASE_URL
+        fromEnv: DATABASE_URL
+      - key: REDIS_URL
+        fromEnv: REDIS_URL
+      - key: INTERNAL_SERVICE_TOKEN
+        fromEnv: INTERNAL_SERVICE_TOKEN
