@@ -1,8 +1,9 @@
 {
   "scripts": {
-    "dev": "node -e \"require('http').createServer((_,res)=>{res.writeHead(200,{'Content-Type':'text/html'});res.end('<h1>SHAHID</h1><p>App scaffold was overwritten by repo import. Ask Lovable to restore the TanStack Start app.</p>');}).listen(process.env.PORT||8080,()=>console.log('listening'))\"",
-    "build:dev": "echo 'noop'",
-    "build": "echo 'noop'"
+    "dev": "vite",
+    "build:dev": "vite build",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.1",
