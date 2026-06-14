@@ -1,14 +1,13 @@
-import { createRootRoute } from '@tanstack/react-router';
-import { Outlet, ScrollRestoration } from '@tanstack/react-router';
+import { createRootRoute, Outlet, ScrollRestoration } from '@tanstack/react-router';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { QueryClient, QueryClientProvider } from 'react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import Layout from '../apps/web/src/components/Layout';
+import Layout from '../src/components/Layout';
 
 // Import i18n configuration
-import '../apps/web/src/i18n';
+import '../src/i18n';
 
 const queryClient = new QueryClient({
   defaultOptions: {

@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQuery, useMutation } from 'react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   Box,
   Typography,
@@ -30,8 +30,8 @@ import {
   Alert,
 } from '@mui/material';
 import { Add, Edit, Delete } from '@mui/icons-material';
-import { fetchUsers, createUser } from '../src/services/api';
-import { useAuthStore } from '../src/store/authStore';
+import { fetchUsers, createUser } from '../../src/services/api';
+import { useAuthStore } from '../../src/store/authStore';
 
 export const Route = createFileRoute('/users')({
   beforeLoad: ({ location }) => {

@@ -18,7 +18,7 @@ import {
   Alert,
 } from '@mui/material';
 import { Settings as SettingsIcon, Save } from '@mui/icons-material';
-import { useAuthStore } from '../src/store/authStore';
+import { useAuthStore } from '../../src/store/authStore';
 
 export const Route = createFileRoute('/settings')({
   beforeLoad: ({ location }) => {

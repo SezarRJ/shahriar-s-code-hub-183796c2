@@ -20,8 +20,8 @@ import {
   Download,
   Image as ImageIcon,
 } from '@mui/icons-material';
-import { exportEvidence, verifyPhoto } from '../src/services/api';
-import { useAuthStore } from '../src/store/authStore';
+import { exportEvidence, verifyPhoto } from '../../src/services/api';
+import { useAuthStore } from '../../src/store/authStore';
 
 export const Route = createFileRoute('/evidence')({
   beforeLoad: ({ location }) => {

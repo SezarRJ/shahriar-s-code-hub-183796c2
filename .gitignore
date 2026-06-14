@@ -72,3 +72,4 @@ coverage/
 # Vite
 **/.vite/
 .npm/
+.cache

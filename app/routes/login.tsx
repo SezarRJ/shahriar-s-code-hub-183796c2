@@ -12,8 +12,8 @@ import {
 } from '@mui/material';
 import { LockOutlined } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
-import { loginUser } from '../src/services/api';
-import { useAuthStore } from '../src/store/authStore';
+import { loginUser } from '../../src/services/api';
+import { useAuthStore } from '../../src/store/authStore';
 
 export const Route = createFileRoute('/login')({
   component: LoginPage,

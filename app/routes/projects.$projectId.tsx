@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createFileRoute, useNavigate, redirect } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import {
   Box,
   Typography,
@@ -24,8 +24,8 @@ import {
   Alert,
 } from '@mui/material';
 import { ArrowBack } from '@mui/icons-material';
-import { fetchProject } from '../src/services/api';
-import { useAuthStore } from '../src/store/authStore';
+import { fetchProject } from '../../src/services/api';
+import { useAuthStore } from '../../src/store/authStore';
 
 export const Route = createFileRoute('/projects/$projectId')({
   beforeLoad: ({ location }) => {

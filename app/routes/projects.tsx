@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, redirect } from '@tanstack/react-router';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQuery, useMutation } from 'react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   Box,
   Typography,
@@ -38,8 +38,8 @@ import {
   Apartment,
   UploadFile,
 } from '@mui/icons-material';
-import { fetchProjects, createProject } from '../src/services/api';
-import { useAuthStore } from '../src/store/authStore';
+import { fetchProjects, createProject } from '../../src/services/api';
+import { useAuthStore } from '../../src/store/authStore';
 
 export const Route = createFileRoute('/projects')({
   beforeLoad: ({ location }) => {

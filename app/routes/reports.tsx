@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQuery, useMutation } from 'react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   Box,
   Typography,
@@ -33,8 +33,8 @@ import {
   Download,
   ArrowForward,
 } from '@mui/icons-material';
-import { fetchReports, triggerReport, fetchProjects } from '../src/services/api';
-import { useAuthStore } from '../src/store/authStore';
+import { fetchReports, triggerReport, fetchProjects } from '../../src/services/api';
+import { useAuthStore } from '../../src/store/authStore';
 
 export const Route = createFileRoute('/reports')({
   beforeLoad: ({ location }) => {
